@@ -33,7 +33,7 @@ CourierNett vzniká jako praktický nástroj pro sledování kurýrních směn, 
 - rozlišení služeb Wolt, Foodora a Bolt
 - import knihy jízd z PDF
 - import výdělku ze screenshotu
-- výpočet paliva, amortizace a OSVČ nákladů
+- výpočet paliva, amortizace a dalších nákladů
 - výpočet čistého zisku
 - graf výkonu podle směn
 - export měsíčního přehledu do PDF
