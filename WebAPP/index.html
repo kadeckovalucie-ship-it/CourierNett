@@ -13,421 +13,265 @@
   </head>
   <body>
     <div id="app">
-      <header class="app-header">
-        <div>
-          <p class="eyebrow" id="headerSubtitle">Profil</p>
-          <h1 id="headerTitle">Název profilu</h1>
-        </div>
+      <header class="topbar">
+        <p id="screenEyebrow">Přehled</p>
+        <h1 id="screenTitle">Název profilu</h1>
       </header>
 
       <main>
-        <section class="view active" id="view-overview" aria-labelledby="monthDisplayButton">
-          <div class="section-title">
-            <button class="month-display" id="monthDisplayButton" type="button">Červen 26</button>
-            <input class="visually-hidden" id="monthPicker" type="month" aria-label="Měsíc přehledu">
-            <button class="primary small" id="newOverviewButton" type="button">Nový měsíc</button>
-            <button class="secondary small" id="exportPdfButton" type="button">Export PDF</button>
+        <section class="screen active" id="screen-dashboard" aria-label="Přehled">
+          <div class="header-grid">
+            <button class="header-tile plain" id="monthButton" type="button">Červen 26</button>
+            <button class="header-tile primary" id="nextMonthButton" type="button">Nový přehled</button>
+            <button class="header-tile secondary" id="exportButton" type="button">Export PDF</button>
+            <input class="visually-hidden" id="monthInput" type="month">
           </div>
-          <div class="service-filter" id="serviceFilter" aria-label="Filtr služeb"></div>
-          <section class="dashboard-box">
-            <div class="metrics" id="metricsGrid">
-              <article>
-                <span>Příjem</span>
-                <strong id="metricIncome">0 Kč</strong>
-              </article>
-              <article>
-                <span>Čistý zisk za hodinu</span>
-                <strong id="metricHourly">Bez hodin</strong>
-              </article>
-              <article>
-                <span>Čistý zisk za měsíc</span>
-                <strong id="metricProfit">0 Kč</strong>
-              </article>
-              <article class="metric-middle-left">
-                <span>Kilometry</span>
-                <strong id="metricKm">0 km</strong>
-              </article>
-              <article class="metric-middle-right">
-                <span>Náklady na km</span>
-                <strong id="metricFuel">0 Kč</strong>
-              </article>
-              <article id="metricTaxesTile">
-                <span>OSVČ odvody</span>
-                <strong id="metricTaxes">0 Kč</strong>
-              </article>
-              <article id="metricRentTile">
-                <span>Pronájem vozidla</span>
-                <strong id="metricRent">0 Kč</strong>
-              </article>
-              <article id="metricCostsTile">
-                <span>Výdaje celkem</span>
-                <strong id="metricCosts">0 Kč</strong>
-              </article>
+
+          <div class="service-filter" id="serviceFilter"></div>
+
+          <section class="metric-grid" id="metricGrid"></section>
+
+          <section class="panel">
+            <h2>Výkon</h2>
+            <div class="chart" id="performanceChart"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Směny</h2>
+            <div class="shift-grid" id="dashboardShifts"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="screen-history" aria-label="Historie">
+          <section class="panel row between">
+            <div>
+              <h2>Řazení</h2>
+              <p id="historySortLabel">Od nejnovějšího</p>
             </div>
+            <label class="switch">
+              <input id="historySortToggle" type="checkbox">
+              <span></span>
+            </label>
           </section>
-          <section class="dashboard-box">
-            <h3>Výkon</h3>
-            <div class="profit-chart" id="profitChart"></div>
-          </section>
-          <section class="dashboard-box dashboard-box-shifts">
-            <h3>Směny</h3>
-            <div class="list" id="overviewList"></div>
-          </section>
+          <div class="stack" id="historyList"></div>
         </section>
 
-        <section class="view" id="view-shifts" aria-label="Historie přehledů">
-          <div class="section-title">
-            <select id="historySortSelect" aria-label="Řazení historie">
-              <option value="desc">Od nejnovějšího</option>
-              <option value="asc">Od nejstaršího</option>
-            </select>
-          </div>
-          <div class="list" id="shiftList"></div>
-        </section>
+        <section class="screen" id="screen-import" aria-label="Import">
+          <section class="panel">
+            <h2>Služba</h2>
+            <div class="service-list" id="importServices"></div>
+            <p class="warning hidden" id="importWarning">Vyber službu</p>
+          </section>
 
-        <section class="view" id="view-import" aria-labelledby="importTitle">
-          <div class="section-title">
-            <h2 id="importTitle">Import</h2>
-          </div>
-          <div class="stack">
-            <fieldset class="service-picker import-service-picker">
-              <legend>Služba</legend>
-              <label>
-                <input name="importService" type="radio" value="Foodora">
-                Foodora
-              </label>
-              <label>
-                <input name="importService" type="radio" value="Wolt">
-                Wolt
-              </label>
-              <label>
-                <input name="importService" type="radio" value="Bolt">
-                Bolt
-              </label>
-              <p class="service-warning"><span class="warning-icon" aria-hidden="true">!</span> Vyber službu</p>
-            </fieldset>
-            <article class="panel">
-              <h3>Kniha jízd</h3>
+          <section class="panel">
+            <h2>Kniha jízd</h2>
+            <label class="file-row">
+              <span>Vybrat PDF</span>
               <input id="pdfInput" type="file" accept="application/pdf">
-              <input id="manualPdfDate" type="hidden">
-              <div class="inline-fields">
-                <label>
-                  Km
-                  <input id="manualPdfKm" type="text" inputmode="decimal">
-                </label>
-              </div>
-              <p class="status" id="pdfStatus"></p>
-            </article>
+            </label>
+            <label class="field-row">
+              <span>Datum</span>
+              <input id="importDate" type="date">
+            </label>
+            <label class="field-row">
+              <span>Kilometry</span>
+              <input id="importKm" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0 km">
+            </label>
+          </section>
 
-            <article class="panel">
-              <h3>Výdělek</h3>
-              <input id="earningsInput" type="file" accept="image/*">
-              <input id="manualEarningsDate" type="hidden">
-              <div class="inline-fields">
-                <label>
-                  Výdělek
-                  <input id="manualIncome" type="text" inputmode="decimal">
-                </label>
-                <label>
-                  Hodiny
-                  <input id="manualHours" type="text" inputmode="decimal">
-                </label>
-              </div>
-              <p class="status" id="ocrStatus"></p>
-            </article>
-            <button class="primary" id="saveImportButton" type="button">Uložit</button>
-          </div>
+          <section class="panel">
+            <h2>Výdělek</h2>
+            <label class="file-row">
+              <span>Vybrat screenshot</span>
+              <input id="imageInput" type="file" accept="image/*">
+            </label>
+            <label class="field-row">
+              <span>Výdělek</span>
+              <input id="importIncome" type="number" inputmode="decimal" min="0" step="1" placeholder="0 Kč">
+            </label>
+            <label class="field-row">
+              <span>Hodiny</span>
+              <input id="importHours" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0 h">
+            </label>
+          </section>
+
+          <button class="full primary-action" id="saveImportButton" type="button">Uložit</button>
+          <p class="status" id="importStatus"></p>
         </section>
 
-        <section class="view" id="view-settings" aria-labelledby="settingsTitle">
-          <div class="section-title">
-            <h2 id="settingsTitle">Náklady</h2>
-          </div>
-          <form class="settings-grid cost-tile-grid" id="settingsForm">
-            <label class="cost-tile">
-              Spotřeba l / 100 km
-              <input name="consumption" type="text" inputmode="decimal">
-            </label>
-            <label class="cost-tile">
-              Cena paliva / litr
-              <input name="fuelPrice" type="text" inputmode="decimal">
-              <small id="fuelPriceMeta">Zdroj: mBenzin.cz, zatím nenačteno</small>
-            </label>
-            <label class="cost-tile">
-              Pronájem vozidla / měsíc
-              <input name="vehicleRent" type="text" inputmode="decimal">
-            </label>
-            <label class="cost-tile">
-              Typ paliva
-              <select name="fuelType">
-                <option value="gasoline">Benzín</option>
-                <option value="diesel">Diesel</option>
-                <option value="lpg">LPG</option>
-              </select>
-            </label>
-            <label class="cost-tile">
-              Rok výroby
-              <input name="productionYear" type="text" inputmode="numeric">
-            </label>
-            <label class="cost-tile">
-              Amortizace
-              <input name="amortizationMonthly" type="text" readonly>
-            </label>
-          </form>
-          <label class="side-income-toggle">
-            <input id="sideIncomeToggle" type="checkbox">
-            <span>Vedlejší příjem</span>
-          </label>
-          <article class="panel tax-panel">
-            <h3>OSVČ náklady</h3>
-            <div class="inline-fields">
-              <label>
-                Směn za měsíc
-                <input id="monthlyShiftCount" type="text" inputmode="numeric">
+        <section class="screen" id="screen-costs" aria-label="Náklady">
+          <section class="panel">
+            <h2>Vozidlo</h2>
+            <form class="stack" id="expenseForm">
+              <label class="field-row">
+                <span>Spotřeba <small>l / 100 km</small></span>
+                <input name="consumptionLitersPer100km" type="number" min="0" step="0.1">
               </label>
-              <label>
-                Výdělek / směna
-                <input id="averageShiftIncome" type="text" inputmode="decimal" readonly placeholder="Bez dat">
+              <label class="field-row">
+                <span>Cena paliva <small>Kč / litr</small></span>
+                <input name="fuelPricePerLiter" type="number" min="0" step="0.1">
               </label>
-              <label>
-                Paušální výdaje
-                <select id="flatExpenseRate">
+              <p class="hint" id="fuelPriceInfo">Zdroj: mBenzin.cz, zatím nenačteno</p>
+              <label class="field-row">
+                <span>Pronájem vozidla <small>Kč / měsíc</small></span>
+                <input name="vehicleRent" type="number" min="0" step="1">
+              </label>
+              <label class="field-row">
+                <span>Typ paliva</span>
+                <select name="fuelType">
+                  <option value="gasoline">Benzín</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="lpg">LPG</option>
+                </select>
+              </label>
+              <label class="field-row">
+                <span>Rok výroby</span>
+                <input name="productionYear" type="number" min="1980" max="2035" step="1">
+              </label>
+              <div class="field-row readonly">
+                <span>Amortizace</span>
+                <strong id="amortizationRate">0 Kč / km</strong>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <h2>OSVČ nastavení</h2>
+            <form class="stack" id="businessForm">
+              <label class="field-row">
+                <span>Vedlejší příjem</span>
+                <input name="isSideIncome" type="checkbox">
+              </label>
+              <label class="field-row">
+                <span>Směn za měsíc</span>
+                <input name="monthlyShiftCount" type="number" min="0" step="1">
+              </label>
+              <div class="field-row readonly">
+                <span>Výdělek za směnu</span>
+                <strong id="averageIncome">Bez dat</strong>
+              </div>
+              <label class="field-row">
+                <span>Paušální výdaje</span>
+                <select name="flatExpenseRate">
                   <option value="0.8">80 %</option>
                   <option value="0.6">60 %</option>
                   <option value="0.4">40 %</option>
                   <option value="0.3">30 %</option>
                 </select>
               </label>
-            </div>
-            <div class="tax-grid" id="taxGrid"></div>
-            <p class="status" id="taxStatus">Zdravotní část podle VOZP. Orientační výpočet.</p>
-          </article>
+            </form>
+          </section>
+
+          <section class="panel">
+            <h2>OSVČ náklady</h2>
+            <div class="metric-grid compact" id="businessEstimate"></div>
+          </section>
         </section>
 
-        <section class="view" id="view-preferences" aria-labelledby="preferencesTitle">
-          <div class="section-title preferences-title-row">
-            <h2 id="preferencesTitle">Nastavení</h2>
-            <label class="theme-mode-control">
-              <span>Tmavý a světlý režim</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v2"></path>
-                <path d="M12 20v2"></path>
-                <path d="M4.93 4.93l1.41 1.41"></path>
-                <path d="M17.66 17.66l1.41 1.41"></path>
-                <path d="M2 12h2"></path>
-                <path d="M20 12h2"></path>
-                <path d="M4.93 19.07l1.41-1.41"></path>
-                <path d="M17.66 6.34l1.41-1.41"></path>
-              </svg>
+        <section class="screen" id="screen-preferences" aria-label="Nastavení">
+          <section class="panel">
+            <h2>Profil</h2>
+            <label class="field-row">
+              <span>Název profilu</span>
+              <input id="profileNameInput" type="text">
+            </label>
+          </section>
+
+          <section class="panel">
+            <h2>Tmavý a světlý režim</h2>
+            <label class="field-row">
+              <span>Barevný režim</span>
               <select id="themeSelect">
+                <option value="system">Podle zařízení</option>
                 <option value="light">Světlý</option>
                 <option value="dark">Tmavý</option>
               </select>
             </label>
-          </div>
-          <div class="preferences-panel">
-            <section class="preferences-section">
-              <h3>Profil</h3>
-              <div class="settings-grid profile-settings-grid">
-                <label>
-                  Vybraný profil
-                  <select id="profileSelect"></select>
-                </label>
-                <label>
-                  Název profilu
-                  <input id="profileNameInput" type="text" placeholder="Název profilu">
-                </label>
-                <div class="profile-actions">
-                  <button class="secondary" id="newProfileButton" type="button">Nový profil</button>
-                  <button class="danger" id="deleteProfileButton" type="button">Smazat profil</button>
-                </div>
-              </div>
-            </section>
-            <section class="preferences-section">
-              <h3>Přihlášení profilu</h3>
-              <p class="status">Teď je profil uložený jen v tomto zařízení. Cloudové přihlášení přidáme později.</p>
-            </section>
-            <section class="preferences-section">
-              <h3>Vzhled</h3>
-              <div class="wallpaper-row">
-                <label>
-                  Tapeta
-                  <input id="wallpaperInput" type="file" accept="image/*">
-                </label>
-                <button class="delete-icon-button" id="clearWallpaperButton" type="button" aria-label="Smazat tapetu" title="Smazat tapetu">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4 7h16"></path>
-                    <path d="M9 7V5h6v2"></path>
-                    <path d="M7 7l1 13h8l1-13"></path>
-                    <path d="M10 11v5"></path>
-                    <path d="M14 11v5"></path>
-                  </svg>
-                </button>
-              </div>
-            </section>
-            <section class="preferences-section">
-              <h3>Záloha</h3>
-              <div class="settings-grid backup-settings-grid">
-                <button class="secondary" id="downloadBackupButton" type="button">Vytvořit zálohu</button>
-                <label>
-                  Nahrát zálohu
-                  <input id="backupInput" type="file" accept="application/json,.json">
-                </label>
-                <p class="status" id="backupStatus"></p>
-              </div>
-            </section>
-          </div>
-          <button class="info-button" id="aboutButton" type="button" aria-label="O projektu" title="O projektu">i</button>
+          </section>
+
+          <section class="panel">
+            <h2>Data</h2>
+            <div class="button-list">
+              <button id="backupButton" type="button">Vytvořit zálohu</button>
+              <label class="file-row button-like">
+                <span>Nahrát zálohu</span>
+                <input id="backupInput" type="file" accept="application/json,.json">
+              </label>
+            </div>
+            <p class="status" id="backupStatus"></p>
+          </section>
+
+          <section class="panel">
+            <h2>Testování</h2>
+            <button class="full" id="demoButton" type="button">Načíst zkušební data</button>
+            <p class="hint">Ukázková data slouží jen pro vyzkoušení vzhledu a výpočtů.</p>
+          </section>
         </section>
       </main>
 
-      <nav class="tabbar" aria-label="Navigace">
-        <button class="active" data-view="overview" type="button">Přehled</button>
-        <button data-view="shifts" type="button">Historie</button>
-        <button data-view="import" type="button">Import</button>
-        <button data-view="settings" type="button">Náklady</button>
-        <button data-view="preferences" type="button">Nastavení</button>
+      <nav class="tabbar" aria-label="Hlavní navigace">
+        <button class="active" data-screen="dashboard" type="button"><span>▦</span>Přehled</button>
+        <button data-screen="history" type="button"><span>◷</span>Historie</button>
+        <button data-screen="import" type="button"><span>⇩</span>Import</button>
+        <button data-screen="costs" type="button"><span>⛽</span>Náklady</button>
+        <button data-screen="preferences" type="button"><span>⚙</span>Nastavení</button>
       </nav>
     </div>
 
     <dialog id="shiftDialog">
       <form method="dialog" id="shiftForm">
-        <header>
-          <h2 id="shiftDialogTitle">Směna</h2>
-          <button class="icon-button" value="cancel" type="submit" aria-label="Zavřít">×</button>
+        <header class="dialog-header">
+          <h2 id="shiftDialogTitle">Nová směna</h2>
+          <button value="cancel" type="submit">Zavřít</button>
         </header>
-        <input type="hidden" name="id">
-        <label>
-          Datum
-          <input name="date" type="date" required>
+        <input id="shiftId" type="hidden">
+        <label class="field-row">
+          <span>Datum</span>
+          <input id="shiftDate" type="date" required>
         </label>
-        <fieldset class="service-picker">
-          <legend>Služba</legend>
-          <label>
-            <input name="title" type="radio" value="Foodora" required>
-            Foodora
-          </label>
-          <label>
-            <input name="title" type="radio" value="Wolt">
-            Wolt
-          </label>
-          <label>
-            <input name="title" type="radio" value="Bolt">
-            Bolt
-          </label>
-          <p class="service-warning"><span class="warning-icon" aria-hidden="true">!</span> Vyber službu</p>
-        </fieldset>
-        <label>
-          Kilometry
-          <input name="kilometers" type="text" inputmode="decimal" required>
+        <label class="field-row">
+          <span>Služba</span>
+          <select id="shiftTitle">
+            <option>Wolt</option>
+            <option>Foodora</option>
+            <option>Bolt</option>
+          </select>
         </label>
-        <label>
-          Hodiny
-          <input name="hours" type="text" inputmode="decimal">
+        <label class="field-row">
+          <span>Kilometry</span>
+          <input id="shiftKm" type="number" min="0" step="0.1">
         </label>
-        <label>
-          Výdělek
-          <input name="income" type="text" inputmode="decimal">
+        <label class="field-row">
+          <span>Hodiny</span>
+          <input id="shiftHours" type="number" min="0" step="0.1">
+        </label>
+        <label class="field-row">
+          <span>Výdělek</span>
+          <input id="shiftIncome" type="number" min="0" step="1">
+        </label>
+        <label class="field-column">
+          <span>Poznámka</span>
+          <textarea id="shiftNotes" rows="3"></textarea>
         </label>
         <div class="dialog-actions">
-          <button class="danger" id="deleteShiftButton" type="button">Smazat</button>
-          <button class="primary" value="save" type="submit">Uložit</button>
+          <button class="danger hidden" id="deleteShiftButton" type="button">Smazat</button>
+          <button class="primary-action" value="default" type="submit">Uložit</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="shiftDetailDialog">
-      <div class="detail-panel">
-        <header>
-          <div>
-            <p class="eyebrow">Detail směny</p>
-            <h2 id="shiftDetailTitle">Směna</h2>
-          </div>
-          <button class="icon-button" id="closeShiftDetailButton" type="button" aria-label="Zavřít">×</button>
+      <article class="detail-dialog">
+        <header class="dialog-header">
+          <h2 id="detailTitle">Směna</h2>
+          <button id="closeDetailButton" type="button">Zavřít</button>
         </header>
-        <div class="detail-grid" id="shiftDetailGrid"></div>
-        <a class="map-link detail-map" id="shiftDetailMap" href="#" target="_blank" rel="noopener">Zobrazit mapu</a>
-        <div class="detail-actions">
-          <button class="detail-action-button" id="editShiftDetailButton" type="button" aria-label="Upravit směnu" title="Upravit směnu">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 20h4l11-11a2.5 2.5 0 0 0-4-4L4 16v4z"></path>
-              <path d="M13.5 6.5l4 4"></path>
-            </svg>
-          </button>
-          <button class="detail-action-button danger-icon" id="deleteShiftDetailButton" type="button" aria-label="Smazat směnu" title="Smazat směnu">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16"></path>
-              <path d="M9 7V5h6v2"></path>
-              <path d="M7 7l1 13h8l1-13"></path>
-              <path d="M10 11v5"></path>
-              <path d="M14 11v5"></path>
-            </svg>
-          </button>
+        <div class="metric-grid compact" id="detailGrid"></div>
+        <div class="dialog-actions">
+          <button id="editDetailButton" type="button">Upravit</button>
+          <button class="danger" id="deleteDetailButton" type="button">Smazat</button>
         </div>
-      </div>
-    </dialog>
-
-    <dialog id="aboutDialog">
-      <div class="detail-panel about-panel">
-        <header>
-          <div>
-            <p class="eyebrow">O projektu</p>
-            <h2>CourierNett</h2>
-          </div>
-          <button class="icon-button" id="closeAboutButton" type="button" aria-label="Zavřít">×</button>
-        </header>
-        <div class="about-content">
-          <p>Osobní kalkulačka pro kurýry.</p>
-          <p>CourierNett vzniká jako praktický nástroj pro sledování kurýrních směn, nákladů a reálného čistého zisku. Cílem není vytvořit další složitý systém, ale odstranit co nejvíce administrativy z běžného provozu.</p>
-
-          <h3>Cíl</h3>
-          <ul>
-            <li>sledovat příjem ze směn</li>
-            <li>sledovat kilometry, palivo, amortizaci a další náklady</li>
-            <li>počítat čistý zisk za měsíc i za hodinu</li>
-            <li>připravit přehledné podklady pro vlastní kontrolu nebo účetní</li>
-            <li>minimalizovat ruční přepisování dat</li>
-          </ul>
-
-          <h3>Princip</h3>
-          <ul>
-            <li>data zůstávají v zařízení uživatele</li>
-            <li>aplikace nepoužívá vlastní backend</li>
-            <li>aplikace neukládá soukromá data na externí server</li>
-            <li>záloha dat je ruční a pod kontrolou uživatele</li>
-            <li>cena paliva se může automaticky načíst z veřejného zdroje, ale uživatel ji může kdykoliv přepsat ručně</li>
-          </ul>
-
-          <h3>Stav projektu</h3>
-          <ul>
-            <li>aktivní vývoj</li>
-            <li>používáno v reálném provozu</li>
-            <li>webová verze je funkční bez serveru</li>
-            <li>iOS verze je připravovaná jako nativní aplikace</li>
-          </ul>
-
-          <h3>Plánované funkce</h3>
-          <ul>
-            <li>přesnější automatizace vstupních dat</li>
-            <li>pohodlnější práce s exporty pro účetní</li>
-            <li>beta verze pro iPhone</li>
-            <li>možná podpora Apple Watch pro měření trasy</li>
-            <li>případné cloudové přihlášení až ve chvíli, kdy bude dávat smysl</li>
-          </ul>
-
-          <h3>Neplánované funkce</h3>
-          <ul>
-            <li>doporučování směn</li>
-            <li>predikce výdělků</li>
-            <li>heatmapy restaurací</li>
-            <li>sledování uživatele mimo jeho vlastní data</li>
-            <li>ukládání soukromých směn na cizí server bez jasného důvodu</li>
-          </ul>
-
-          <p>Projekt nevznikl jako ukázkové portfolio. Vznikl z reálné potřeby: mít jednoduchý přehled o tom, kolik kurýrní práce skutečně vydělává po odečtení nákladů.</p>
-        </div>
-      </div>
+      </article>
     </dialog>
 
     <script src="./app.js"></script>
