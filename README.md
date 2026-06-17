@@ -1,8 +1,22 @@
 # CourierNett
 
-Osobní kalkulačka pro kurýry.
+Osobní kalkulačka pro kurýry. Projekt obsahuje dvě samostatné aplikace:
+
+- `WebAPP` - webová/PWA verze bez backendu
+- `iOS-App` - nativní iOS aplikace ve SwiftUI
 
 CourierNett vzniká jako praktický nástroj pro sledování kurýrních směn, nákladů a reálného čistého zisku. Cílem není vytvořit další složitý systém, ale odstranit co nejvíce administrativy z běžného provozu.
+
+## Struktura repozitáře
+
+```text
+CourierNett/
+├── WebAPP/       # webová aplikace
+├── iOS-App/      # iOS aplikace a Xcode projekt
+├── .gitattributes
+├── .gitignore
+└── README.md
+```
 
 ## Cíl
 
