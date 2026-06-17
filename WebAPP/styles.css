@@ -549,17 +549,37 @@ dialog form,
 
 .about-text {
   display: grid;
-  gap: 10px;
+  gap: 14px;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  padding-right: 4px;
   line-height: 1.45;
 }
 
+.about-text section {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel-alt);
+}
+
 .about-text h3,
-.about-text p {
+.about-text p,
+.about-text ul {
   margin: 0;
 }
 
 .about-text h3 {
   font-size: 1.1rem;
+}
+
+.about-text ul {
+  padding-left: 1.1rem;
+}
+
+.about-text li + li {
+  margin-top: 4px;
 }
 
 .popup-section {

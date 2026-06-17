@@ -196,21 +196,18 @@ function bindEvents() {
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (stored) return normalizeState(stored);
+    if (stored) {
+      const normalized = normalizeState(stored);
+      return normalized.shifts.length ? normalized : demoState();
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
 
   const migrated = migrateLegacyState();
-  if (migrated) return migrated;
+  if (migrated) return migrated.shifts.length ? migrated : demoState();
 
-  return normalizeState({
-    shifts: [],
-    selectedMonth: currentMonth(),
-    expense: defaults.expense,
-    business: defaults.business,
-    preferences: defaults.preferences,
-  });
+  return demoState();
 }
 
 function migrateLegacyState() {
@@ -740,29 +737,41 @@ function calculateIncomeTax(taxBase) {
 }
 
 function createDemoData() {
+  state = demoState();
+}
+
+function demoState() {
+  const demoMonths = ["2026-06", "2026-07", "2026-08", "2026-09"];
+  const shifts = demoMonths.flatMap((month, monthIndex) => demoShiftsForMonth(month, monthIndex));
+  return normalizeState({
+    shifts,
+    selectedMonth: demoMonths[0],
+    expense: { ...defaults.expense, consumptionLitersPer100km: 10, fuelPricePerLiter: 39, vehicleRent: 4200 },
+    business: { ...defaults.business, monthlyShiftCount: 20, flatExpenseRate: 0.8 },
+    preferences: defaults.preferences,
+  });
+}
+
+function demoShiftsForMonth(month, monthIndex) {
   const samples = [
-    [49.5, 4.4, 1760], [56.2, 4.8, 1680], [61.4, 5.2, 1880], [52.8, 4.5, 1760],
-    [68.6, 5.7, 2110], [73.1, 6.1, 2290], [45.7, 3.9, 1080], [63.9, 5.4, 2050],
-    [58.2, 4.9, 1960], [70.4, 5.8, 2380], [54.9, 4.6, 1780], [66.5, 5.5, 2220],
-    [80.2, 6.4, 2470], [42.1, 3.8, 1390], [59.6, 5.0, 2130], [76.3, 6.0, 2590],
-    [50.4, 4.2, 1730], [64.8, 5.1, 2360], [47.9, 4.0, 1560], [69.7, 5.3, 2520],
+    [49.5, 4.4, 1760], [56.2, 4.8, 1680], [61.4, 5.2, 1880], [68.6, 5.7, 2110],
+    [73.1, 6.1, 2290], [58.2, 4.9, 1960], [70.4, 5.8, 2380], [66.5, 5.5, 2220],
   ];
-  const [year, month] = state.selectedMonth.split("-").map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  state.shifts = samples.map((sample, index) => {
-    const day = Math.min(daysInMonth, 1 + Math.round(index * (daysInMonth - 1) / 19));
+  const [year, monthNumber] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const offset = monthIndex * 3;
+  return samples.map((sample, index) => {
+    const day = Math.min(daysInMonth, 2 + Math.round(index * (daysInMonth - 4) / (samples.length - 1)));
+    const monthFactor = 1 + monthIndex * 0.035;
     return normalizeShift({
-      date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-      title: SERVICES[index % SERVICES.length],
-      kilometers: sample[0],
+      date: `${year}-${String(monthNumber).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      title: SERVICES[(index + offset) % SERVICES.length],
+      kilometers: sample[0] + monthIndex * 2.4,
       hours: sample[1],
-      income: sample[2],
-      notes: "Zkušební data pro první beta verzi.",
+      income: Math.round(sample[2] * monthFactor),
+      notes: `Zkušební přehled: ${MONTH_NAMES[monthNumber - 1].toLowerCase()}.`,
     });
   });
-  state.expense = { ...state.expense, consumptionLitersPer100km: 10, fuelPricePerLiter: 39, vehicleRent: 4200 };
-  state.business = { ...state.business, monthlyShiftCount: state.shifts.length, flatExpenseRate: 0.8 };
-  state.preferences.profileName = "Název profilu";
 }
 
 function downloadBackup() {
