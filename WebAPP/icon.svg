@@ -1,6 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0f766e"/>
-  <path d="M124 330h264v44H124zM142 138h228v154H142z" fill="#fff"/>
-  <path d="M174 178h164v28H174zm0 54h112v28H174z" fill="#0f766e"/>
-  <path d="M144 330c0-45 36-82 82-82h60c45 0 82 37 82 82" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">CourierNett icon</title>
+  <desc id="desc">Minimalist teal line icon showing a courier hand passing an envelope to an open receiving hand.</desc>
+  <defs>
+    <linearGradient id="crn" x1="180" y1="240" x2="850" y2="820" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0EA5C6"/>
+      <stop offset="1" stop-color="#20C878"/>
+    </linearGradient>
+    <style>
+      .line{fill:none;stroke:url(#crn);stroke-width:24;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+  </defs>
+  <rect x="96" y="96" width="832" height="832" rx="180" class="line"/>
+  <path class="line" d="M360 420h305c20 0 36 16 36 36v130c0 20-16 36-36 36H372c-20 0-36-16-36-36l-14-128c-2-20 16-38 38-38z"/>
+  <path class="line" d="M340 438l172 120c18 13 42 13 60 0l112-88"/>
+  <path class="line" d="M330 586c-52 0-82 16-116 45l-68 30"/>
+  <path class="line" d="M160 720l86-40c27-12 56-16 84-10l78 17c24 5 49-3 65-22l42-50c10-12 28-14 40-5 13 10 15 30 4 43l-78 88c-21 24-53 36-84 31l-119-18-74 34"/>
+  <path class="line" d="M655 370c42-40 70-54 118-43l86 20"/>
+  <path class="line" d="M875 320l-90 28 30 142c-22 28-62 46-101 42l-53-7"/>
+  <path class="line" d="M676 448h52v56l-72 18"/>
+  <path class="line" d="M270 474h-92M278 526h-122M290 578h-86"/>
+  <circle cx="836" cy="408" r="14" fill="#20C878"/>
+  <circle cx="214" cy="748" r="14" fill="#0EA5C6"/>
 </svg>
