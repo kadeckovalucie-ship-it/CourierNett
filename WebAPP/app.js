@@ -939,7 +939,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=105").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=106").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
