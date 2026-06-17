@@ -480,21 +480,16 @@ main {
 }
 
 .tabbar button {
-  display: grid;
-  gap: 2px;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 48px;
   border: 0;
   border-radius: 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.tabbar span {
-  font-size: 1.15rem;
-  line-height: 1;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
 .tabbar button.active {
