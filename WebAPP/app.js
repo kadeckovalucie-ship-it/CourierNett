@@ -68,6 +68,8 @@ function cacheElements() {
     historySortLabel: document.querySelector("#historySortLabel"),
     historyList: document.querySelector("#historyList"),
     importServices: document.querySelector("#importServices"),
+    importDialog: document.querySelector("#importDialog"),
+    closeImportButton: document.querySelector("#closeImportButton"),
     importWarning: document.querySelector("#importWarning"),
     pdfInput: document.querySelector("#pdfInput"),
     imageInput: document.querySelector("#imageInput"),
@@ -145,6 +147,7 @@ function bindEvents() {
       ? "Screenshot vybrán. Web zatím hodnoty nepřečte automaticky, doplň výdělek a hodiny ručně."
       : "";
   });
+  els.closeImportButton.addEventListener("click", () => els.importDialog.close());
   els.saveImportButton.addEventListener("click", saveImport);
 
   els.expenseForm.addEventListener("input", updateExpense);
@@ -303,7 +306,6 @@ function screenLabel(screen) {
   return {
     dashboard: "Přehled",
     history: "Historie",
-    import: "Import",
     costs: "Náklady",
     preferences: "Nastavení",
   }[screen] || "Přehled";
@@ -427,7 +429,7 @@ function renderDashboardShifts() {
       return `<button class="shift-tile ${tone}" data-id="${shift.id}" type="button">${dayLabel(shift.date)}</button>`;
     }),
   ].join("");
-  els.dashboardShifts.querySelector(".add-tile").addEventListener("click", () => openShiftDialog());
+  els.dashboardShifts.querySelector(".add-tile").addEventListener("click", openImportDialog);
   els.dashboardShifts.querySelectorAll(".shift-tile").forEach((button) => {
     button.addEventListener("click", () => openShiftDetail(button.dataset.id));
   });
@@ -549,7 +551,16 @@ function saveImport() {
   els.pdfInput.value = "";
   els.imageInput.value = "";
   els.importStatus.textContent = "Import uložen.";
+  els.importDialog.close();
   saveAndRender();
+}
+
+function openImportDialog() {
+  els.importDate.value = `${state.selectedMonth}-01`;
+  els.importStatus.textContent = "";
+  els.importWarning.classList.add("hidden");
+  renderImportServices();
+  els.importDialog.showModal();
 }
 
 function openShiftDialog(shift = null) {

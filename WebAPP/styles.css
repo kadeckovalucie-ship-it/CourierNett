@@ -471,7 +471,7 @@ main {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 2px;
   padding: 7px 8px calc(env(safe-area-inset-bottom) + 7px);
   background: color-mix(in srgb, var(--panel) 92%, transparent);
@@ -504,6 +504,7 @@ main {
 
 dialog {
   width: min(92vw, 520px);
+  max-height: min(86vh, 760px);
   border: 0;
   border-radius: 20px;
   padding: 0;
@@ -520,6 +521,8 @@ dialog form,
   display: grid;
   gap: 12px;
   padding: 16px;
+  max-height: min(86vh, 760px);
+  overflow: auto;
 }
 
 .dialog-header,
@@ -562,6 +565,20 @@ dialog form,
 
 .about-text h3 {
   font-size: 1.1rem;
+}
+
+.popup-section {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel-alt);
+}
+
+.popup-section h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
 }
 
 .danger {
