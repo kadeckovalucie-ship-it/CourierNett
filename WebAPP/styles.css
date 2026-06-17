@@ -492,6 +492,10 @@ main {
   font-weight: 800;
 }
 
+.tabbar button span {
+  display: none !important;
+}
+
 .tabbar button.active {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);

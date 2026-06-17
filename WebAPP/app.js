@@ -40,12 +40,17 @@ const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
+  removeLegacyTabIcons();
   bindEvents();
   syncForms();
   applyTheme();
   render();
   registerServiceWorker();
 });
+
+function removeLegacyTabIcons() {
+  document.querySelectorAll(".tabbar button span").forEach((icon) => icon.remove());
+}
 
 function cacheElements() {
   Object.assign(els, {
@@ -937,7 +942,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=102").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
