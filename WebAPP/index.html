@@ -14,8 +14,11 @@
   <body>
     <div id="app">
       <header class="topbar">
-        <p id="screenEyebrow">Přehled</p>
-        <h1 id="screenTitle">Název profilu</h1>
+        <div class="topbar-title">
+          <p id="screenEyebrow">Přehled</p>
+          <h1 id="screenTitle">Název profilu</h1>
+        </div>
+        <button class="info-button" id="aboutButton" type="button" aria-label="O projektu">i</button>
       </header>
 
       <main>
@@ -270,6 +273,21 @@
         <div class="dialog-actions">
           <button id="editDetailButton" type="button">Upravit</button>
           <button class="danger" id="deleteDetailButton" type="button">Smazat</button>
+        </div>
+      </article>
+    </dialog>
+
+    <dialog id="aboutDialog">
+      <article class="detail-dialog">
+        <header class="dialog-header">
+          <h2>O projektu</h2>
+          <button id="closeAboutButton" type="button">Zavřít</button>
+        </header>
+        <div class="about-text">
+          <h3>CourierNett</h3>
+          <p>Osobní kalkulačka pro kurýry. Pomáhá sledovat směny, kilometry, náklady a reálný čistý zisk bez vlastního backendu.</p>
+          <p>Data zůstávají v zařízení uživatele. Záloha a obnova dat jsou ruční a pod kontrolou uživatele.</p>
+          <p>Webová verze teď míří na stejnou logiku a rozložení jako iOS aplikace.</p>
         </div>
       </article>
     </dialog>

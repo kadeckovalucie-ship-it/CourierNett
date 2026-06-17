@@ -51,6 +51,9 @@ function cacheElements() {
   Object.assign(els, {
     screenTitle: document.querySelector("#screenTitle"),
     screenEyebrow: document.querySelector("#screenEyebrow"),
+    aboutButton: document.querySelector("#aboutButton"),
+    aboutDialog: document.querySelector("#aboutDialog"),
+    closeAboutButton: document.querySelector("#closeAboutButton"),
     screens: [...document.querySelectorAll(".screen")],
     tabs: [...document.querySelectorAll(".tabbar button")],
     monthButton: document.querySelector("#monthButton"),
@@ -110,6 +113,8 @@ function bindEvents() {
   els.tabs.forEach((tab) => {
     tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
   });
+  els.aboutButton.addEventListener("click", () => els.aboutDialog.showModal());
+  els.closeAboutButton.addEventListener("click", () => els.aboutDialog.close());
 
   els.monthButton.addEventListener("click", () => {
     els.monthInput.showPicker?.();

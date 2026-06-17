@@ -60,9 +60,15 @@ button {
 }
 
 .topbar {
+  position: relative;
   max-width: 860px;
   margin: 0 auto 14px;
+  min-height: 42px;
   text-align: center;
+}
+
+.topbar-title {
+  padding: 0 48px;
 }
 
 .topbar p {
@@ -76,6 +82,23 @@ button {
   margin: 0;
   font-size: clamp(1.18rem, 4vw, 1.55rem);
   line-height: 1.15;
+}
+
+.info-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.12rem;
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1;
 }
 
 main {
@@ -524,6 +547,21 @@ dialog form,
 
 .dialog-actions .primary-action {
   color: white;
+}
+
+.about-text {
+  display: grid;
+  gap: 10px;
+  line-height: 1.45;
+}
+
+.about-text h3,
+.about-text p {
+  margin: 0;
+}
+
+.about-text h3 {
+  font-size: 1.1rem;
 }
 
 .danger {
