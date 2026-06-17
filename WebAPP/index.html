@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>CourierNett</title>
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=102">
+    <link rel="stylesheet" href="./styles.css?v=104">
   </head>
   <body>
     <div id="app">
@@ -290,18 +290,18 @@
           <button id="closeAboutButton" type="button">Zavřít</button>
         </header>
         <div class="about-text">
-          <section>
-            <h3>CourierNett</h3>
+          <details open>
+            <summary>CourierNett</summary>
             <p>Osobní kalkulačka pro kurýry. Projekt obsahuje dvě samostatné aplikace:</p>
             <ul>
               <li><strong>WebAPP</strong> - webová/PWA verze bez backendu</li>
               <li><strong>iOS-App</strong> - nativní iOS aplikace ve SwiftUI</li>
             </ul>
             <p>CourierNett vzniká jako praktický nástroj pro sledování kurýrních směn, nákladů a reálného čistého zisku. Cílem není vytvořit další složitý systém, ale odstranit co nejvíce administrativy z běžného provozu.</p>
-          </section>
+          </details>
 
-          <section>
-            <h3>Cíl</h3>
+          <details>
+            <summary>Cíl</summary>
             <ul>
               <li>sledovat příjem ze směn</li>
               <li>sledovat kilometry, palivo, amortizaci a další náklady</li>
@@ -309,10 +309,10 @@
               <li>připravit přehledné podklady pro vlastní kontrolu nebo účetní</li>
               <li>minimalizovat ruční přepisování dat</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Princip</h3>
+          <details>
+            <summary>Princip</summary>
             <ul>
               <li>data zůstávají v zařízení uživatele</li>
               <li>aplikace nepoužívá vlastní backend</li>
@@ -320,20 +320,20 @@
               <li>záloha dat je ruční a pod kontrolou uživatele</li>
               <li>cena paliva se může automaticky načíst z veřejného zdroje, ale uživatel ji může kdykoliv přepsat ručně</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Stav projektu</h3>
+          <details>
+            <summary>Stav projektu</summary>
             <ul>
               <li>aktivní vývoj</li>
               <li>používáno v reálném provozu</li>
               <li>webová verze je funkční bez serveru</li>
               <li>iOS verze je připravovaná jako nativní aplikace</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Aktuální funkce</h3>
+          <details>
+            <summary>Aktuální funkce</summary>
             <ul>
               <li>měsíční přehledy směn</li>
               <li>rozlišení služeb Wolt, Foodora a Bolt</li>
@@ -345,10 +345,10 @@
               <li>export měsíčního přehledu do PDF</li>
               <li>lokální záloha a obnovení dat</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Plánované funkce</h3>
+          <details>
+            <summary>Plánované funkce</summary>
             <ul>
               <li>přesnější automatizace vstupních dat</li>
               <li>pohodlnější práce s exporty pro účetní</li>
@@ -356,10 +356,10 @@
               <li>možná podpora Apple Watch pro měření trasy</li>
               <li>případné cloudové přihlášení až ve chvíli, kdy bude dávat smysl</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Neplánované funkce</h3>
+          <details>
+            <summary>Neplánované funkce</summary>
             <ul>
               <li>doporučování směn</li>
               <li>predikce výdělků</li>
@@ -367,16 +367,16 @@
               <li>sledování uživatele mimo jeho vlastní data</li>
               <li>ukládání soukromých směn na cizí server bez jasného důvodu</li>
             </ul>
-          </section>
+          </details>
 
-          <section>
-            <h3>Poznámka</h3>
+          <details>
+            <summary>Poznámka</summary>
             <p>Projekt nevznikl jako ukázkové portfolio. Vznikl z reálné potřeby: mít jednoduchý přehled o tom, kolik kurýrní práce skutečně vydělává po odečtení nákladů.</p>
-          </section>
+          </details>
         </div>
       </article>
     </dialog>
 
-    <script src="./app.js?v=102"></script>
+    <script src="./app.js?v=104"></script>
   </body>
 </html>

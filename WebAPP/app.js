@@ -359,16 +359,13 @@ function toggleService(service) {
 
 function renderMetrics() {
   const totals = totalsFor(displayedShifts());
-  const costPerKm = totals.fuel + totals.amortization;
+  const profitPerKm = totals.kilometers > 0 ? totals.profit / totals.kilometers : null;
   const items = [
     ["Příjem", money(totals.income)],
-    ["Čistý zisk / h", totals.profitPerHour == null ? "Bez hodin" : money(totals.profitPerHour), totals.profit >= 0 ? "good" : "bad"],
+    ["Náklady", money(totals.costs)],
     ["Čistý zisk", money(totals.profit), totals.profit >= 0 ? "good" : "bad"],
-    ["Kilometry", km(totals.kilometers)],
-    ["Náklady na km", money(costPerKm)],
-    ["OSVČ odvody", money(totals.taxes)],
-    ...(state.expense.vehicleRent > 0 ? [["Pronájem vozidla", money(totals.rent)]] : []),
-    ["Výdaje celkem", money(totals.costs)],
+    ["Kč/h", totals.profitPerHour == null ? "Bez hodin" : money(totals.profitPerHour), totals.profit >= 0 ? "good" : "bad"],
+    ["Kč/km", profitPerKm == null ? "Bez km" : money(profitPerKm), totals.profit >= 0 ? "good" : "bad"],
   ];
   els.metricGrid.innerHTML = items.map(metricMarkup).join("");
 }
@@ -942,7 +939,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=102").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=104").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

@@ -6,11 +6,11 @@ layout: null
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=./WebAPP/?v=102">
+    <meta http-equiv="refresh" content="0; url=./WebAPP/?v=104">
     <title>CourierNett</title>
-    <link rel="canonical" href="./WebAPP/?v=102">
+    <link rel="canonical" href="./WebAPP/?v=104">
   </head>
   <body>
-    <p><a href="./WebAPP/?v=102">Otevřít CourierNett</a></p>
+    <p><a href="./WebAPP/?v=104">Otevřít CourierNett</a></p>
   </body>
 </html>
