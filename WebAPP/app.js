@@ -2,6 +2,7 @@ const STORAGE_KEY = "couriernett-ios-web-v1";
 const LEGACY_KEYS = ["naklady-smen-profiles-v1", "naklady-smen-web-v1"];
 const SERVICES = ["Wolt", "Foodora", "Bolt"];
 const THEMES = ["system", "light", "dark"];
+const DEMO_DATA_VERSION = 2;
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
@@ -203,6 +204,7 @@ function loadState() {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (stored) {
       const normalized = normalizeState(stored);
+      if (isOutdatedDemoState(normalized)) return demoState();
       return normalized.shifts.length ? normalized : demoState();
     }
   } catch {
@@ -257,7 +259,14 @@ function normalizeState(data) {
     expense: { ...defaults.expense, ...(data.expense || {}) },
     business: { ...defaults.business, ...(data.business || {}) },
     preferences: { ...defaults.preferences, ...(data.preferences || {}) },
+    demoDataVersion: Number(data.demoDataVersion) || 0,
   };
+}
+
+function isOutdatedDemoState(data) {
+  return data.shifts.length > 0
+    && data.demoDataVersion < DEMO_DATA_VERSION
+    && data.shifts.every((shift) => shift.notes?.startsWith("Zkušební přehled:"));
 }
 
 function normalizeShift(shift) {
@@ -444,23 +453,29 @@ function renderHistory() {
   els.historyList.innerHTML = months.map((month) => {
     const totals = totalsFor(shiftsInMonth(month));
     return `
-      <button class="history-card" data-month="${month}" type="button">
-        <header><span>${shortMonthLabel(month)}</span><strong style="color:${totals.profit >= 0 ? "var(--good)" : "var(--bad)"}">${money(totals.profit)}</strong></header>
-        <div class="history-values">
-          <div><span>Km</span><strong>${km(totals.kilometers)}</strong></div>
-          <div><span>Náklady/km</span><strong>${money(totals.fuel + totals.amortization)}</strong></div>
-          <div><span>Hodiny</span><strong>${hours(totals.hours)}</strong></div>
-          <div><span>Obrat</span><strong>${money(totals.income)}</strong></div>
-        </div>
-      </button>
+      <article class="history-card">
+        <button class="history-open" data-month="${month}" type="button">
+          <header><span>${shortMonthLabel(month)}</span><strong style="color:${totals.profit >= 0 ? "var(--good)" : "var(--bad)"}">${money(totals.profit)}</strong></header>
+          <div class="history-values">
+            <div><span>Km</span><strong>${km(totals.kilometers)}</strong></div>
+            <div><span>Náklady/km</span><strong>${money(totals.fuel + totals.amortization)}</strong></div>
+            <div><span>Hodiny</span><strong>${hours(totals.hours)}</strong></div>
+            <div><span>Obrat</span><strong>${money(totals.income)}</strong></div>
+          </div>
+        </button>
+        <button class="history-delete" data-month="${month}" type="button" aria-label="Smazat ${shortMonthLabel(month)}">Smazat</button>
+      </article>
     `;
   }).join("");
-  els.historyList.querySelectorAll(".history-card").forEach((card) => {
+  els.historyList.querySelectorAll(".history-open").forEach((card) => {
     card.addEventListener("click", () => {
       state.selectedMonth = card.dataset.month;
       switchScreen("dashboard");
       saveAndRender();
     });
+  });
+  els.historyList.querySelectorAll(".history-delete").forEach((button) => {
+    button.addEventListener("click", () => deleteMonth(button.dataset.month));
   });
 }
 
@@ -616,6 +631,15 @@ function deleteShift(id) {
   saveAndRender();
 }
 
+function deleteMonth(month) {
+  if (!confirm(`Smazat celý přehled ${shortMonthLabel(month)}?`)) return;
+  state.shifts = state.shifts.filter((shift) => monthKey(shift.date) !== month);
+  if (state.selectedMonth === month) {
+    state.selectedMonth = historyMonths()[0] || currentMonth();
+  }
+  saveAndRender();
+}
+
 function addOrMerge(partial) {
   const existing = state.shifts.find((shift) => shift.date === partial.date);
   if (existing) {
@@ -748,16 +772,17 @@ function demoState() {
   return normalizeState({
     shifts,
     selectedMonth: demoMonths[0],
-    expense: { ...defaults.expense, consumptionLitersPer100km: 10, fuelPricePerLiter: 39, vehicleRent: 4200 },
+    expense: { ...defaults.expense, consumptionLitersPer100km: 8.5, fuelPricePerLiter: 39, vehicleRent: 1800 },
     business: { ...defaults.business, monthlyShiftCount: 20, flatExpenseRate: 0.8 },
     preferences: defaults.preferences,
+    demoDataVersion: DEMO_DATA_VERSION,
   });
 }
 
 function demoShiftsForMonth(month, monthIndex) {
   const samples = [
-    [49.5, 4.4, 1760], [56.2, 4.8, 1680], [61.4, 5.2, 1880], [68.6, 5.7, 2110],
-    [73.1, 6.1, 2290], [58.2, 4.9, 1960], [70.4, 5.8, 2380], [66.5, 5.5, 2220],
+    [49.5, 4.4, 3180], [56.2, 4.8, 3360], [61.4, 5.2, 3580], [68.6, 5.7, 3920],
+    [73.1, 6.1, 4210], [58.2, 4.9, 3540], [70.4, 5.8, 4380], [66.5, 5.5, 4120],
   ];
   const [year, monthNumber] = month.split("-").map(Number);
   const daysInMonth = new Date(year, monthNumber, 0).getDate();
@@ -939,7 +964,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=106").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=107").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
