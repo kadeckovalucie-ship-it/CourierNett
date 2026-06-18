@@ -6,6 +6,8 @@ const DEMO_DATA_VERSION = 2;
 const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
 const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+const SUPABASE_JS_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const CLOUD_TABLE = "couriernett_profiles";
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
@@ -41,6 +43,13 @@ let selectedImportService = null;
 let activeScreen = "dashboard";
 let selectedShiftId = null;
 const els = {};
+const cloud = {
+  client: null,
+  user: null,
+  status: "Cloud neni pripojen.",
+  saveTimer: null,
+  isApplyingRemote: false,
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
@@ -49,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   syncForms();
   applyTheme();
   render();
+  initCloud();
   registerServiceWorker();
 });
 
@@ -96,6 +106,15 @@ function cacheElements() {
     businessEstimate: document.querySelector("#businessEstimate"),
     profileNameInput: document.querySelector("#profileNameInput"),
     themeSelect: document.querySelector("#themeSelect"),
+    loginEmailInput: document.querySelector("#loginEmailInput"),
+    loginButton: document.querySelector("#loginButton"),
+    logoutButton: document.querySelector("#logoutButton"),
+    syncNowButton: document.querySelector("#syncNowButton"),
+    loadCloudButton: document.querySelector("#loadCloudButton"),
+    cloudSignedOut: document.querySelector("#cloudSignedOut"),
+    cloudSignedIn: document.querySelector("#cloudSignedIn"),
+    cloudUser: document.querySelector("#cloudUser"),
+    cloudStatus: document.querySelector("#cloudStatus"),
     backupButton: document.querySelector("#backupButton"),
     backupInput: document.querySelector("#backupInput"),
     backupStatus: document.querySelector("#backupStatus"),
@@ -175,6 +194,10 @@ function bindEvents() {
     save();
     applyTheme();
   });
+  els.loginButton?.addEventListener("click", signInWithEmail);
+  els.logoutButton?.addEventListener("click", signOutCloud);
+  els.syncNowButton?.addEventListener("click", () => saveCloudNow("Data ulozena do cloudu."));
+  els.loadCloudButton?.addEventListener("click", () => loadCloudData({ force: true }));
   els.backupButton.addEventListener("click", downloadBackup);
   els.backupInput.addEventListener("change", importBackup);
   els.demoButton.addEventListener("click", () => {
@@ -265,6 +288,7 @@ function normalizeState(data) {
     business: { ...defaults.business, ...(data.business || {}) },
     preferences: { ...defaults.preferences, ...(data.preferences || {}) },
     demoDataVersion: Number(data.demoDataVersion) || 0,
+    updatedAt: data.updatedAt || null,
   };
 }
 
@@ -292,7 +316,9 @@ function saveAndRender() {
 }
 
 function save() {
+  state.updatedAt = new Date().toISOString();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  queueCloudSave();
 }
 
 function render() {
@@ -308,6 +334,7 @@ function render() {
   renderHistory();
   renderImportServices();
   renderCosts();
+  renderCloud();
   syncForms();
 }
 
@@ -537,6 +564,149 @@ function updateBusiness() {
     isSideIncome: form.isSideIncome.checked,
   };
   saveAndRender();
+}
+
+async function initCloud() {
+  const config = globalThis.COURIERNETT_SUPABASE;
+  if (!config?.url || !config?.publishableKey) {
+    setCloudStatus("Cloud neni nastaven.");
+    return;
+  }
+
+  try {
+    const { createClient } = await import(SUPABASE_JS_URL);
+    cloud.client = createClient(config.url, config.publishableKey);
+    cloud.client.auth.onAuthStateChange((_event, session) => {
+      handleCloudSession(session, { loadRemote: true });
+    });
+    const { data, error } = await cloud.client.auth.getSession();
+    if (error) throw error;
+    await handleCloudSession(data.session, { loadRemote: true });
+  } catch (error) {
+    setCloudStatus(`Cloud se nepodarilo pripojit: ${friendlyCloudError(error)}`);
+  }
+}
+
+async function handleCloudSession(session, options = {}) {
+  cloud.user = session?.user || null;
+  if (!cloud.user) {
+    setCloudStatus("Nejsi prihlasena. Data jsou zatim jen v tomto zarizeni.");
+    renderCloud();
+    return;
+  }
+
+  setCloudStatus(`Prihlaseno jako ${cloud.user.email || "ucet"}.`);
+  renderCloud();
+  if (options.loadRemote) await loadCloudData({ initial: true });
+}
+
+async function signInWithEmail() {
+  const email = els.loginEmailInput?.value?.trim();
+  if (!email) {
+    setCloudStatus("Zadej e-mail.");
+    return;
+  }
+  if (!cloud.client) {
+    setCloudStatus("Cloud jeste neni pripraveny.");
+    return;
+  }
+
+  try {
+    setCloudStatus("Posilam prihlasovaci odkaz...");
+    const { error } = await cloud.client.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${location.origin}${location.pathname}` },
+    });
+    if (error) throw error;
+    setCloudStatus("Hotovo. Otevri odkaz v e-mailu na tomto zarizeni.");
+  } catch (error) {
+    setCloudStatus(`Prihlaseni se nepodarilo: ${friendlyCloudError(error)}`);
+  }
+}
+
+async function signOutCloud() {
+  if (!cloud.client) return;
+  await cloud.client.auth.signOut();
+  cloud.user = null;
+  setCloudStatus("Odhlaseno. Data zustavaji ulozena lokalne.");
+  renderCloud();
+}
+
+async function loadCloudData(options = {}) {
+  if (!cloud.client || !cloud.user) return;
+  try {
+    setCloudStatus("Nacitam data z cloudu...");
+    const { data, error } = await cloud.client
+      .from(CLOUD_TABLE)
+      .select("data, updated_at")
+      .eq("user_id", cloud.user.id)
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!data?.data) {
+      await saveCloudNow("Cloud byl prazdny, ulozila jsem sem aktualni data.");
+      return;
+    }
+
+    state = normalizeState(data.data);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    applyTheme();
+    render();
+    setCloudStatus(options.force ? "Data nactena z cloudu." : "Data synchronizovana z cloudu.");
+  } catch (error) {
+    cloud.isApplyingRemote = false;
+    setCloudStatus(`Cloud se nepodarilo nacist: ${friendlyCloudError(error)}`);
+  }
+}
+
+function queueCloudSave() {
+  if (!cloud.client || !cloud.user || cloud.isApplyingRemote) return;
+  clearTimeout(cloud.saveTimer);
+  cloud.saveTimer = setTimeout(() => saveCloudNow("Data ulozena do cloudu."), 900);
+}
+
+async function saveCloudNow(successMessage = "Data ulozena do cloudu.") {
+  if (!cloud.client || !cloud.user) {
+    setCloudStatus("Nejdriv se prihlas.");
+    return;
+  }
+  try {
+    const payload = { ...state, updatedAt: new Date().toISOString() };
+    const { error } = await cloud.client
+      .from(CLOUD_TABLE)
+      .upsert({
+        user_id: cloud.user.id,
+        data: payload,
+        updated_at: payload.updatedAt,
+      }, { onConflict: "user_id" });
+    if (error) throw error;
+    state = normalizeState(payload);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setCloudStatus(successMessage);
+  } catch (error) {
+    setCloudStatus(`Cloud se nepodarilo ulozit: ${friendlyCloudError(error)}`);
+  }
+}
+
+function setCloudStatus(message) {
+  cloud.status = message;
+  renderCloud();
+}
+
+function renderCloud() {
+  if (!els.cloudStatus) return;
+  els.cloudStatus.textContent = cloud.status;
+  els.cloudSignedOut?.classList.toggle("hidden", !!cloud.user);
+  els.cloudSignedIn?.classList.toggle("hidden", !cloud.user);
+  if (els.cloudUser) els.cloudUser.textContent = cloud.user?.email || "-";
+}
+
+function friendlyCloudError(error) {
+  const message = error?.message || String(error || "neznama chyba");
+  if (message.includes(CLOUD_TABLE) || message.includes("schema cache")) {
+    return "chybi cloudova tabulka. Spust SQL soubor WebAPP/supabase-schema.sql v Supabase.";
+  }
+  return message;
 }
 
 async function importPdfFile() {
@@ -1239,7 +1409,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=109").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=110").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

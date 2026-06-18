@@ -1,9 +1,10 @@
-const CACHE_NAME = "couriernett-v109";
+const CACHE_NAME = "couriernett-v110";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./supabase-config.js",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

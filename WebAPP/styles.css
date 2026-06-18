@@ -408,6 +408,11 @@ main {
   font-weight: 700;
 }
 
+.field-row input[type="email"] {
+  width: min(52vw, 260px);
+  text-align: left;
+}
+
 .field-row input[type="checkbox"] {
   width: 22px;
   height: 22px;
