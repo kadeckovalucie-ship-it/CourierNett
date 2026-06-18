@@ -226,7 +226,7 @@ function migrateLegacyState() {
       const shifts = Object.values(profile.overviews || {})
         .flatMap((overview) => overview.shifts || [])
         .map((shift) => ({
-          id: shift.id || crypto.randomUUID(),
+          id: shift.id || createId(),
           date: shift.date || new Date().toISOString().slice(0, 10),
           title: normalizeService(shift.title),
           kilometers: number(shift.kilometers),
@@ -271,7 +271,7 @@ function isOutdatedDemoState(data) {
 
 function normalizeShift(shift) {
   return {
-    id: shift.id || crypto.randomUUID(),
+    id: shift.id || createId(),
     date: toDateInput(shift.date || new Date()),
     title: normalizeService(shift.title),
     kilometers: number(shift.kilometers),
@@ -592,7 +592,7 @@ function openShiftDialog(shift = null) {
 
 function saveShiftFromDialog() {
   const shift = normalizeShift({
-    id: els.shiftId.value || crypto.randomUUID(),
+    id: els.shiftId.value || createId(),
     date: els.shiftDate.value,
     title: els.shiftTitle.value,
     kilometers: els.shiftKm.value,
@@ -885,6 +885,11 @@ function normalizeService(value) {
   return SERVICES.includes(value) ? value : SERVICES[0];
 }
 
+function createId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `shift-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function sum(items, key) {
   return items.reduce((total, item) => total + (number(item[key]) || 0), 0);
 }
@@ -964,7 +969,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=107").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=108").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
