@@ -112,6 +112,10 @@ function cacheElements() {
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
     signupButton: document.querySelector("#signupButton"),
     loginButton: document.querySelector("#loginButton"),
+    resetPasswordButton: document.querySelector("#resetPasswordButton"),
+    newPasswordInput: document.querySelector("#newPasswordInput"),
+    updatePasswordButton: document.querySelector("#updatePasswordButton"),
+    passwordResetBox: document.querySelector("#passwordResetBox"),
     logoutButton: document.querySelector("#logoutButton"),
     syncNowButton: document.querySelector("#syncNowButton"),
     loadCloudButton: document.querySelector("#loadCloudButton"),
@@ -186,6 +190,28 @@ function ensureCloudPasswordUi() {
     signupButton.textContent = "Vytvořit účet";
     buttonList.prepend(signupButton);
   }
+
+  if (!document.querySelector("#resetPasswordButton")) {
+    const resetButton = document.createElement("button");
+    resetButton.id = "resetPasswordButton";
+    resetButton.type = "button";
+    resetButton.textContent = "Zapomenuté heslo";
+    buttonList.after(resetButton);
+  }
+
+  if (!document.querySelector("#passwordResetBox")) {
+    const resetBox = document.createElement("div");
+    resetBox.className = "stack hidden";
+    resetBox.id = "passwordResetBox";
+    resetBox.innerHTML = `
+      <label class="field-row">
+        <span>Nové heslo</span>
+        <input id="newPasswordInput" type="password" autocomplete="new-password" placeholder="aspoň 6 znaků">
+      </label>
+      <button class="full primary-action" id="updatePasswordButton" type="button">Uložit nové heslo</button>
+    `;
+    signedOut.after(resetBox);
+  }
 }
 
 function bindEvents() {
@@ -245,6 +271,8 @@ function bindEvents() {
   });
   els.signupButton?.addEventListener("click", signUpWithPassword);
   els.loginButton?.addEventListener("click", signInWithPassword);
+  els.resetPasswordButton?.addEventListener("click", sendPasswordReset);
+  els.updatePasswordButton?.addEventListener("click", updatePasswordFromRecovery);
   els.logoutButton?.addEventListener("click", signOutCloud);
   els.syncNowButton?.addEventListener("click", () => saveCloudNow("Data uložená do cloudu."));
   els.loadCloudButton?.addEventListener("click", () => loadCloudData({ force: true }));
@@ -626,7 +654,8 @@ async function initCloud() {
   try {
     const { createClient } = await import(SUPABASE_JS_URL);
     cloud.client = createClient(config.url, config.publishableKey);
-    cloud.client.auth.onAuthStateChange((_event, session) => {
+    cloud.client.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") showPasswordResetBox();
       handleCloudSession(session, { loadRemote: true });
     });
     const { data, error } = await cloud.client.auth.getSession();
@@ -731,6 +760,59 @@ function readLoginCredentials() {
   return { email, password };
 }
 
+async function sendPasswordReset() {
+  const email = els.loginEmailInput?.value?.trim();
+  if (!email) {
+    setCloudStatus("Zadej e-mail, kam mám poslat reset hesla.");
+    return;
+  }
+  if (!cloud.client) {
+    setCloudStatus("Cloud ještě není připravený.");
+    return;
+  }
+
+  try {
+    setCloudStatus("Posílám odkaz pro reset hesla...");
+    const { error } = await cloud.client.auth.resetPasswordForEmail(email, {
+      redirectTo: `${location.origin}${location.pathname}`,
+    });
+    if (error) throw error;
+    setCloudStatus("Hotovo. Otevři e-mail a klikni na odkaz pro nastavení nového hesla.");
+  } catch (error) {
+    setCloudStatus(`Reset hesla se nepodařilo poslat: ${friendlyCloudError(error)}`);
+  }
+}
+
+function showPasswordResetBox() {
+  els.cloudSignedOut?.classList.add("hidden");
+  els.passwordResetBox?.classList.remove("hidden");
+  setCloudStatus("Zadej nové heslo.");
+}
+
+async function updatePasswordFromRecovery() {
+  const password = els.newPasswordInput?.value || "";
+  if (password.length < 6) {
+    setCloudStatus("Nové heslo musí mít aspoň 6 znaků.");
+    return;
+  }
+  if (!cloud.client) {
+    setCloudStatus("Cloud ještě není připravený.");
+    return;
+  }
+
+  try {
+    setCloudStatus("Ukládám nové heslo...");
+    const { error } = await cloud.client.auth.updateUser({ password });
+    if (error) throw error;
+    els.newPasswordInput.value = "";
+    els.passwordResetBox?.classList.add("hidden");
+    setCloudStatus("Heslo je změněné. Jsi přihlášená.");
+    renderCloud();
+  } catch (error) {
+    setCloudStatus(`Heslo se nepodařilo změnit: ${friendlyCloudError(error)}`);
+  }
+}
+
 async function signOutCloud() {
   if (!cloud.client) return;
   await cloud.client.auth.signOut();
@@ -805,6 +887,7 @@ function renderCloud() {
   els.cloudStatus.textContent = cloud.status;
   els.cloudSignedOut?.classList.toggle("hidden", !!cloud.user);
   els.cloudSignedIn?.classList.toggle("hidden", !cloud.user);
+  if (cloud.user) els.passwordResetBox?.classList.add("hidden");
   if (els.cloudUser) els.cloudUser.textContent = cloud.user?.email || "-";
 }
 
@@ -1516,7 +1599,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=112").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=113").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
