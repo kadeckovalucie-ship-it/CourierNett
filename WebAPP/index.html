@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-title" content="CourierNett">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>CourierNett</title>
-    <link rel="icon" href="./icon.svg?v=110" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg?v=110">
-    <link rel="manifest" href="./manifest.webmanifest?v=110">
-    <link rel="stylesheet" href="./styles.css?v=110">
+    <link rel="icon" href="./icon.svg?v=112" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon.svg?v=112">
+    <link rel="manifest" href="./manifest.webmanifest?v=112">
+    <link rel="stylesheet" href="./styles.css?v=112">
   </head>
   <body>
     <div id="app">
@@ -172,25 +172,29 @@
           <section class="panel">
             <h2>Cloud</h2>
             <div class="stack" id="cloudSignedOut">
-              <p class="hint">Prihlas se e-mailem a data budou ulozena mimo konkretni telefon nebo pocitac.</p>
+              <p class="hint">Přihlas se e-mailem a data budou uložená mimo konkrétní telefon nebo počítač.</p>
               <label class="field-row">
                 <span>E-mail</span>
                 <input id="loginEmailInput" type="email" autocomplete="email" placeholder="email@example.com">
               </label>
-              <button class="full primary-action" id="loginButton" type="button">Poslat prihlasovaci odkaz</button>
+              <label class="field-row">
+                <span>Heslo</span>
+                <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="aspoň 6 znaků">
+              </label>
+              <button class="full primary-action" id="loginButton" type="button">Poslat přihlašovací odkaz</button>
             </div>
             <div class="stack hidden" id="cloudSignedIn">
               <div class="field-row readonly">
-                <span>Prihlaseno</span>
+                <span>Přihlášeno</span>
                 <strong id="cloudUser">-</strong>
               </div>
               <div class="button-list">
-                <button id="syncNowButton" type="button">Ulozit do cloudu ted</button>
-                <button id="loadCloudButton" type="button">Nacist z cloudu</button>
-                <button id="logoutButton" type="button">Odhlasit</button>
+                <button id="syncNowButton" type="button">Uložit do cloudu teď</button>
+                <button id="loadCloudButton" type="button">Načíst z cloudu</button>
+                <button id="logoutButton" type="button">Odhlásit</button>
               </div>
             </div>
-            <p class="status" id="cloudStatus">Cloud neni pripojen.</p>
+            <p class="status" id="cloudStatus">Cloud není připojen.</p>
           </section>
         </section>
       </main>
@@ -403,7 +407,7 @@
       </article>
     </dialog>
 
-    <script src="./supabase-config.js?v=110"></script>
-    <script src="./app.js?v=110"></script>
+    <script src="./supabase-config.js?v=112"></script>
+    <script src="./app.js?v=112"></script>
   </body>
 </html>

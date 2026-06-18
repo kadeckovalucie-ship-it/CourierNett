@@ -46,12 +46,14 @@ const els = {};
 const cloud = {
   client: null,
   user: null,
-  status: "Cloud neni pripojen.",
+  status: "Cloud není připojen.",
   saveTimer: null,
   isApplyingRemote: false,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  cacheElements();
+  ensureCloudPasswordUi();
   cacheElements();
   removeLegacyTabIcons();
   bindEvents();
@@ -107,6 +109,8 @@ function cacheElements() {
     profileNameInput: document.querySelector("#profileNameInput"),
     themeSelect: document.querySelector("#themeSelect"),
     loginEmailInput: document.querySelector("#loginEmailInput"),
+    loginPasswordInput: document.querySelector("#loginPasswordInput"),
+    signupButton: document.querySelector("#signupButton"),
     loginButton: document.querySelector("#loginButton"),
     logoutButton: document.querySelector("#logoutButton"),
     syncNowButton: document.querySelector("#syncNowButton"),
@@ -137,6 +141,51 @@ function cacheElements() {
     editDetailButton: document.querySelector("#editDetailButton"),
     deleteDetailButton: document.querySelector("#deleteDetailButton"),
   });
+}
+
+function ensureCloudPasswordUi() {
+  const signedOut = document.querySelector("#cloudSignedOut");
+  const emailInput = document.querySelector("#loginEmailInput");
+  const loginButton = document.querySelector("#loginButton");
+  if (!signedOut || !emailInput || !loginButton) return;
+
+  const hint = signedOut.querySelector(".hint");
+  if (hint) {
+    hint.textContent = "Vytvoř si účet e-mailem a heslem. Data pak budou uložená mimo konkrétní telefon nebo počítač.";
+  }
+
+  let passwordInput = document.querySelector("#loginPasswordInput");
+  if (!passwordInput) {
+    const passwordRow = document.createElement("label");
+    passwordRow.className = "field-row";
+    passwordRow.innerHTML = `
+      <span>Heslo</span>
+      <input id="loginPasswordInput" type="password" autocomplete="current-password" placeholder="aspoň 6 znaků">
+    `;
+    emailInput.closest("label")?.after(passwordRow);
+    passwordInput = passwordRow.querySelector("#loginPasswordInput");
+  }
+  passwordInput.placeholder = "aspoň 6 znaků";
+
+  let buttonList = loginButton.closest(".button-list");
+  if (!buttonList) {
+    buttonList = document.createElement("div");
+    buttonList.className = "button-list";
+    loginButton.replaceWith(buttonList);
+    buttonList.append(loginButton);
+  }
+
+  loginButton.classList.remove("full", "primary-action");
+  loginButton.textContent = "Přihlásit";
+
+  if (!document.querySelector("#signupButton")) {
+    const signupButton = document.createElement("button");
+    signupButton.className = "primary-action";
+    signupButton.id = "signupButton";
+    signupButton.type = "button";
+    signupButton.textContent = "Vytvořit účet";
+    buttonList.prepend(signupButton);
+  }
 }
 
 function bindEvents() {
@@ -194,9 +243,10 @@ function bindEvents() {
     save();
     applyTheme();
   });
-  els.loginButton?.addEventListener("click", signInWithEmail);
+  els.signupButton?.addEventListener("click", signUpWithPassword);
+  els.loginButton?.addEventListener("click", signInWithPassword);
   els.logoutButton?.addEventListener("click", signOutCloud);
-  els.syncNowButton?.addEventListener("click", () => saveCloudNow("Data ulozena do cloudu."));
+  els.syncNowButton?.addEventListener("click", () => saveCloudNow("Data uložená do cloudu."));
   els.loadCloudButton?.addEventListener("click", () => loadCloudData({ force: true }));
   els.backupButton.addEventListener("click", downloadBackup);
   els.backupInput.addEventListener("change", importBackup);
@@ -569,7 +619,7 @@ function updateBusiness() {
 async function initCloud() {
   const config = globalThis.COURIERNETT_SUPABASE;
   if (!config?.url || !config?.publishableKey) {
-    setCloudStatus("Cloud neni nastaven.");
+    setCloudStatus("Cloud není nastaven.");
     return;
   }
 
@@ -583,19 +633,19 @@ async function initCloud() {
     if (error) throw error;
     await handleCloudSession(data.session, { loadRemote: true });
   } catch (error) {
-    setCloudStatus(`Cloud se nepodarilo pripojit: ${friendlyCloudError(error)}`);
+    setCloudStatus(`Cloud se nepodařilo připojit: ${friendlyCloudError(error)}`);
   }
 }
 
 async function handleCloudSession(session, options = {}) {
   cloud.user = session?.user || null;
   if (!cloud.user) {
-    setCloudStatus("Nejsi prihlasena. Data jsou zatim jen v tomto zarizeni.");
+    setCloudStatus("Nejsi přihlášená. Data jsou zatím jen v tomto zařízení.");
     renderCloud();
     return;
   }
 
-  setCloudStatus(`Prihlaseno jako ${cloud.user.email || "ucet"}.`);
+  setCloudStatus(`Přihlášeno jako ${cloud.user.email || "účet"}.`);
   renderCloud();
   if (options.loadRemote) await loadCloudData({ initial: true });
 }
@@ -607,35 +657,92 @@ async function signInWithEmail() {
     return;
   }
   if (!cloud.client) {
-    setCloudStatus("Cloud jeste neni pripraveny.");
+    setCloudStatus("Cloud ještě není připravený.");
     return;
   }
 
   try {
-    setCloudStatus("Posilam prihlasovaci odkaz...");
+    setCloudStatus("Posílám přihlašovací odkaz...");
     const { error } = await cloud.client.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${location.origin}${location.pathname}` },
     });
     if (error) throw error;
-    setCloudStatus("Hotovo. Otevri odkaz v e-mailu na tomto zarizeni.");
+    setCloudStatus("Hotovo. Otevři odkaz v e-mailu na tomto zařízení.");
   } catch (error) {
-    setCloudStatus(`Prihlaseni se nepodarilo: ${friendlyCloudError(error)}`);
+    setCloudStatus(`Přihlášení se nepodařilo: ${friendlyCloudError(error)}`);
   }
+}
+
+async function signUpWithPassword() {
+  const credentials = readLoginCredentials();
+  if (!credentials) return;
+
+  try {
+    setCloudStatus("Vytvářím účet...");
+    const { data, error } = await cloud.client.auth.signUp({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    if (error) throw error;
+    if (data.session) {
+      await handleCloudSession(data.session, { loadRemote: true });
+      setCloudStatus("Účet vytvořen a přihlášen.");
+    } else {
+      setCloudStatus("Účet vytvořen. Potvrď e-mail a potom se přihlas.");
+    }
+  } catch (error) {
+    setCloudStatus(`Účet se nepodařilo vytvořit: ${friendlyCloudError(error)}`);
+  }
+}
+
+async function signInWithPassword() {
+  const credentials = readLoginCredentials();
+  if (!credentials) return;
+
+  try {
+    setCloudStatus("Přihlašuji...");
+    const { data, error } = await cloud.client.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    if (error) throw error;
+    await handleCloudSession(data.session, { loadRemote: true });
+  } catch (error) {
+    setCloudStatus(`Přihlášení se nepodařilo: ${friendlyCloudError(error)}`);
+  }
+}
+
+function readLoginCredentials() {
+  const email = els.loginEmailInput?.value?.trim();
+  const password = els.loginPasswordInput?.value || "";
+  if (!email) {
+    setCloudStatus("Zadej e-mail.");
+    return null;
+  }
+  if (password.length < 6) {
+    setCloudStatus("Heslo musí mít aspoň 6 znaků.");
+    return null;
+  }
+  if (!cloud.client) {
+    setCloudStatus("Cloud ještě není připravený.");
+    return null;
+  }
+  return { email, password };
 }
 
 async function signOutCloud() {
   if (!cloud.client) return;
   await cloud.client.auth.signOut();
   cloud.user = null;
-  setCloudStatus("Odhlaseno. Data zustavaji ulozena lokalne.");
+  setCloudStatus("Odhlášeno. Data zůstávají uložená lokálně.");
   renderCloud();
 }
 
 async function loadCloudData(options = {}) {
   if (!cloud.client || !cloud.user) return;
   try {
-    setCloudStatus("Nacitam data z cloudu...");
+    setCloudStatus("Načítám data z cloudu...");
     const { data, error } = await cloud.client
       .from(CLOUD_TABLE)
       .select("data, updated_at")
@@ -644,7 +751,7 @@ async function loadCloudData(options = {}) {
     if (error) throw error;
 
     if (!data?.data) {
-      await saveCloudNow("Cloud byl prazdny, ulozila jsem sem aktualni data.");
+      await saveCloudNow("Cloud byl prázdný, uložila jsem sem aktuální data.");
       return;
     }
 
@@ -652,22 +759,22 @@ async function loadCloudData(options = {}) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     applyTheme();
     render();
-    setCloudStatus(options.force ? "Data nactena z cloudu." : "Data synchronizovana z cloudu.");
+    setCloudStatus(options.force ? "Data načtená z cloudu." : "Data synchronizovaná z cloudu.");
   } catch (error) {
     cloud.isApplyingRemote = false;
-    setCloudStatus(`Cloud se nepodarilo nacist: ${friendlyCloudError(error)}`);
+    setCloudStatus(`Cloud se nepodařilo načíst: ${friendlyCloudError(error)}`);
   }
 }
 
 function queueCloudSave() {
   if (!cloud.client || !cloud.user || cloud.isApplyingRemote) return;
   clearTimeout(cloud.saveTimer);
-  cloud.saveTimer = setTimeout(() => saveCloudNow("Data ulozena do cloudu."), 900);
+  cloud.saveTimer = setTimeout(() => saveCloudNow("Data uložená do cloudu."), 900);
 }
 
-async function saveCloudNow(successMessage = "Data ulozena do cloudu.") {
+async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
   if (!cloud.client || !cloud.user) {
-    setCloudStatus("Nejdriv se prihlas.");
+    setCloudStatus("Nejdřív se přihlas.");
     return;
   }
   try {
@@ -684,7 +791,7 @@ async function saveCloudNow(successMessage = "Data ulozena do cloudu.") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     setCloudStatus(successMessage);
   } catch (error) {
-    setCloudStatus(`Cloud se nepodarilo ulozit: ${friendlyCloudError(error)}`);
+    setCloudStatus(`Cloud se nepodařilo uložit: ${friendlyCloudError(error)}`);
   }
 }
 
@@ -704,7 +811,7 @@ function renderCloud() {
 function friendlyCloudError(error) {
   const message = error?.message || String(error || "neznama chyba");
   if (message.includes(CLOUD_TABLE) || message.includes("schema cache")) {
-    return "chybi cloudova tabulka. Spust SQL soubor WebAPP/supabase-schema.sql v Supabase.";
+    return "chybí cloudová tabulka. Spusť SQL soubor WebAPP/supabase-schema.sql v Supabase.";
   }
   return message;
 }
@@ -719,7 +826,7 @@ async function importPdfFile() {
     if (!result) throw new Error("V PDF jsem nenasla datum ani kilometry.");
     els.importDate.value = result.date;
     els.importKm.value = numberTextForInput(result.kilometers);
-    els.importStatus.textContent = `PDF nacteno: ${dateLabel(result.date)}, ${km(result.kilometers)}. Zkontroluj sluzbu a uloz.`;
+    els.importStatus.textContent = `PDF načteno: ${dateLabel(result.date)}, ${km(result.kilometers)}. Zkontroluj službu a ulož.`;
   } catch (error) {
     els.importStatus.textContent = error.message || "PDF se nepodarilo precist.";
   }
@@ -740,7 +847,7 @@ async function importImageFile() {
       result.income ? money(result.income) : null,
       result.hours ? hours(result.hours) : null,
     ].filter(Boolean).join(", ");
-    els.importStatus.textContent = `Screenshot nacten: ${found}. Zkontroluj sluzbu a uloz.`;
+    els.importStatus.textContent = `Screenshot načten: ${found}. Zkontroluj službu a ulož.`;
   } catch (error) {
     els.importStatus.textContent = error.message || "Screenshot se nepodarilo precist.";
   }
@@ -1409,7 +1516,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=110").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=112").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

@@ -137,7 +137,8 @@ main {
 }
 
 .header-tile.primary,
-.primary-action {
+.primary-action,
+.button-list .primary-action {
   background: var(--accent);
   color: white;
 }
