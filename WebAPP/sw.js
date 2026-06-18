@@ -1,4 +1,4 @@
-const CACHE_NAME = "couriernett-v108";
+const CACHE_NAME = "couriernett-v109";
 const ASSETS = [
   "./",
   "./index.html",

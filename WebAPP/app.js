@@ -3,6 +3,9 @@ const LEGACY_KEYS = ["naklady-smen-profiles-v1", "naklady-smen-web-v1"];
 const SERVICES = ["Wolt", "Foodora", "Bolt"];
 const THEMES = ["system", "light", "dark"];
 const DEMO_DATA_VERSION = 2;
+const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
+const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
@@ -153,6 +156,8 @@ function bindEvents() {
       ? "Screenshot vybrán. Web zatím hodnoty nepřečte automaticky, doplň výdělek a hodiny ručně."
       : "";
   });
+  els.pdfInput.addEventListener("change", importPdfFile);
+  els.imageInput.addEventListener("change", importImageFile);
   els.closeImportButton.addEventListener("click", () => els.importDialog.close());
   els.saveImportButton.addEventListener("click", saveImport);
 
@@ -532,6 +537,271 @@ function updateBusiness() {
     isSideIncome: form.isSideIncome.checked,
   };
   saveAndRender();
+}
+
+async function importPdfFile() {
+  const file = els.pdfInput.files?.[0];
+  if (!file) return;
+  els.importStatus.textContent = "Ctu PDF...";
+  try {
+    const text = await extractPdfText(file);
+    const result = parseVehicleLogText(text);
+    if (!result) throw new Error("V PDF jsem nenasla datum ani kilometry.");
+    els.importDate.value = result.date;
+    els.importKm.value = numberTextForInput(result.kilometers);
+    els.importStatus.textContent = `PDF nacteno: ${dateLabel(result.date)}, ${km(result.kilometers)}. Zkontroluj sluzbu a uloz.`;
+  } catch (error) {
+    els.importStatus.textContent = error.message || "PDF se nepodarilo precist.";
+  }
+}
+
+async function importImageFile() {
+  const file = els.imageInput.files?.[0];
+  if (!file) return;
+  els.importStatus.textContent = "Ctu screenshot...";
+  try {
+    const text = await recognizeImageText(file);
+    const result = parseEarningsText(text);
+    if (!result.income && !result.hours) throw new Error("Ve screenshotu jsem nenasla vydelek ani hodiny.");
+    if (result.date) els.importDate.value = result.date;
+    if (result.income) els.importIncome.value = numberTextForInput(result.income);
+    if (result.hours) els.importHours.value = numberTextForInput(result.hours);
+    const found = [
+      result.income ? money(result.income) : null,
+      result.hours ? hours(result.hours) : null,
+    ].filter(Boolean).join(", ");
+    els.importStatus.textContent = `Screenshot nacten: ${found}. Zkontroluj sluzbu a uloz.`;
+  } catch (error) {
+    els.importStatus.textContent = error.message || "Screenshot se nepodarilo precist.";
+  }
+}
+
+async function extractPdfText(file) {
+  const data = new Uint8Array(await file.arrayBuffer());
+  try {
+    const pdfjs = await loadPdfjs();
+    const document = await pdfjs.getDocument({ data }).promise;
+    const pages = [];
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item) => item.str || "").join("\n"));
+    }
+    return pages.join("\n");
+  } catch {
+    return extractPdfTextFallback(data);
+  }
+}
+
+async function loadPdfjs() {
+  const pdfjs = await import(PDFJS_URL);
+  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+  return pdfjs;
+}
+
+async function extractPdfTextFallback(data) {
+  if (!("DecompressionStream" in globalThis)) {
+    throw new Error("PDF knihovnu se nepodarilo nacist.");
+  }
+
+  const source = new TextDecoder("latin1").decode(data);
+  const chunks = [];
+  const streamPattern = /stream\r?\n/g;
+  let match;
+  while ((match = streamPattern.exec(source))) {
+    const start = match.index + match[0].length;
+    const end = source.indexOf("endstream", start);
+    if (end < 0) break;
+    const chunk = trimPdfStream(data.slice(start, end));
+    const decoded = await inflatePdfChunk(chunk).catch(() => "");
+    if (decoded) chunks.push(extractPdfLiteralText(decoded));
+  }
+
+  const text = chunks.join("\n").trim();
+  if (!text) throw new Error("V PDF jsem nenasla citelny text.");
+  return text;
+}
+
+function trimPdfStream(chunk) {
+  let end = chunk.length;
+  while (end > 0 && [10, 13, 32].includes(chunk[end - 1])) end -= 1;
+  return chunk.slice(0, end);
+}
+
+async function inflatePdfChunk(chunk) {
+  const formats = ["deflate", "deflate-raw"];
+  for (const format of formats) {
+    try {
+      const stream = new Blob([chunk]).stream().pipeThrough(new DecompressionStream(format));
+      return await new Response(stream).text();
+    } catch {
+      continue;
+    }
+  }
+  throw new Error("PDF stream se nepodarilo rozbalit.");
+}
+
+function extractPdfLiteralText(content) {
+  return [...content.matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj/g)]
+    .map((match) => match[1]
+      .replace(/\\([()\\])/g, "$1")
+      .replace(/\\r|\\n/g, " ")
+      .trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function recognizeImageText(file) {
+  await loadTesseract();
+  const result = await globalThis.Tesseract.recognize(file, "ces+eng", {
+    logger(message) {
+      if (message.status === "recognizing text" && Number.isFinite(message.progress)) {
+        els.importStatus.textContent = `Ctu screenshot... ${Math.round(message.progress * 100)} %`;
+      }
+    },
+  });
+  return result?.data?.text || "";
+}
+
+function loadTesseract() {
+  if (globalThis.Tesseract) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = TESSERACT_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("OCR knihovnu se nepodarilo nacist."));
+    document.head.append(script);
+  });
+}
+
+function parseVehicleLogText(text) {
+  const compacted = normalizeText(text).replace(/\s+/g, " ");
+  const rowPattern = /sluzebni\s+(\d{1,2}[.\/-]\s*\d{1,2}(?:[.\/-]\s*\d{2,4})?)\s+\d{1,2}:\d{2}\s+\d{1,2}[.\/-]\s*\d{1,2}(?:[.\/-]\s*\d{2,4})?\s+\d{1,2}:\d{2}\s+\d+(?:[,.]\d+)?\s+(\d+(?:[,.]\d+)?)/g;
+  const rows = [...compacted.matchAll(rowPattern)]
+    .map((match) => ({
+      date: parseImportDate(match[1]),
+      kilometers: number(match[2]),
+    }))
+    .filter((row) => row.date && row.kilometers > 0 && row.kilometers < 1000);
+
+  if (rows.length) {
+    return {
+      date: rows[0].date,
+      kilometers: rows.reduce((total, row) => total + row.kilometers, 0),
+    };
+  }
+
+  const date = parseImportDate(text);
+  const kmMatch = compacted.match(/(?:celkem|ujeto|vzdalenost|kilometry|km)\s*:?\s*(\d+(?:[,.]\d+)?)\s*(?:km)?/);
+  if (date && kmMatch) return { date, kilometers: number(kmMatch[1]) };
+  return null;
+}
+
+function parseEarningsText(text) {
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const date = parseImportDate(text);
+  const income = preferredMoneyAfter(lines, "celkovy prijem") || bestMoney(lines);
+  const drivenHours = preferredHoursAfter(lines, ["odjezd", "odjezdene hodiny"]) || bestHours(lines);
+  return { date, income, hours: drivenHours };
+}
+
+function preferredMoneyAfter(lines, label) {
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!normalizeText(lines[index]).includes(label)) continue;
+    const windowText = lines.slice(index, index + 3);
+    const values = windowText.flatMap(moneyCandidates).sort(scoreSort);
+    if (values[0]) return values[0].value;
+  }
+  return null;
+}
+
+function bestMoney(lines) {
+  return lines.flatMap(moneyCandidates).sort(scoreSort)[0]?.value || null;
+}
+
+function moneyCandidates(line) {
+  const lower = normalizeText(line);
+  const matches = [...line.matchAll(/(\d{1,3}(?:\s?\d{3})*(?:[,.]\d{1,2})?|\d{2,6}(?:[,.]\d{1,2})?)\s*(?:kc|czk|kč)?/gi)];
+  return matches.map((match) => {
+    const value = number(match[1].replace(/\s/g, ""));
+    let score = 0;
+    if (value < 50) return null;
+    if (lower.includes("celkovy prijem")) score += 10;
+    if (lower.includes("prijem") || lower.includes("vydelek")) score += 5;
+    if (lower.includes("kc") || lower.includes("czk")) score += 2;
+    if (lower.includes("zaklad")) score -= 2;
+    if (lower.includes("spropitne") || lower.includes("hodinovy prumer")) score -= 4;
+    if (lower.includes("km")) score -= 5;
+    if (lower.includes("objedn")) score -= 3;
+    return { value, score };
+  }).filter(Boolean);
+}
+
+function preferredHoursAfter(lines, labels) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const lower = normalizeText(lines[index]);
+    if (!labels.some((label) => lower.includes(label))) continue;
+    const values = lines.slice(index, index + 3).flatMap(hourCandidates).sort(scoreSort);
+    if (values[0]) return values[0].value;
+  }
+  return null;
+}
+
+function bestHours(lines) {
+  return lines.flatMap(hourCandidates).sort(scoreSort)[0]?.value || null;
+}
+
+function hourCandidates(line) {
+  const lower = normalizeText(line);
+  const patterns = [
+    /(\d{1,2})\s*h\s*(\d{1,2})\s*m/gi,
+    /(\d{1,2})\s*[:.]\s*([0-5]\d)/gi,
+    /(\d{1,2}(?:[,.]\d{1,2})?)\s*(?:h|hod|hodin)/gi,
+  ];
+  const results = [];
+  for (const pattern of patterns) {
+    for (const match of line.matchAll(pattern)) {
+      const value = match[2] == null
+        ? number(match[1])
+        : number(match[1]) + number(match[2]) / 60;
+      if (!value || value > 24) continue;
+      let score = 0;
+      if (lower.includes("hod")) score += 3;
+      if (lower.includes("odjezd") || lower.includes("online")) score += 5;
+      if (lower.includes("kc") || lower.includes("czk") || lower.includes("km")) score -= 5;
+      if (lower.includes(" - ")) score -= 3;
+      results.push({ value, score });
+    }
+  }
+  return results;
+}
+
+function parseImportDate(text) {
+  const match = String(text).match(/(?<!\d)(\d{1,2})[.\/-]\s*(\d{1,2})(?:[.\/-]\s*(\d{2,4}))?\.?(?!\d)/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  const currentYear = new Date().getFullYear();
+  const parsedYear = match[3] ? Number(match[3]) : currentYear;
+  const year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function normalizeText(text) {
+  return String(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function scoreSort(left, right) {
+  return left.score === right.score ? right.value - left.value : right.score - left.score;
+}
+
+function numberTextForInput(value) {
+  return String(Math.round((value || 0) * 100) / 100);
 }
 
 function saveImport() {
@@ -969,7 +1239,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=108").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=109").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
