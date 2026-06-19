@@ -156,6 +156,7 @@ function cacheElements() {
     cloudSignedOut: document.querySelector("#cloudSignedOut"),
     cloudSignedIn: document.querySelector("#cloudSignedIn"),
     cloudUser: document.querySelector("#cloudUser"),
+    cloudLocalCount: document.querySelector("#cloudLocalCount"),
     cloudStatus: document.querySelector("#cloudStatus"),
     backupButton: document.querySelector("#backupButton"),
     backupInput: document.querySelector("#backupInput"),
@@ -955,7 +956,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
   }
   try {
     const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen...`);
+    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen: ${shiftSummary(payload.shifts)}.`);
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1122,7 +1123,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
   }
   try {
     const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen...`);
+    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen: ${shiftSummary(payload.shifts)}.`);
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1156,6 +1157,12 @@ function renderCloud() {
   els.cloudSignedIn?.classList.toggle("hidden", !cloud.user);
   if (cloud.user) els.passwordResetBox?.classList.add("hidden");
   if (els.cloudUser) els.cloudUser.textContent = cloud.user?.email || "-";
+  if (els.cloudLocalCount) els.cloudLocalCount.textContent = `${state.shifts.length} smen: ${shiftSummary(state.shifts)}`;
+}
+
+function shiftSummary(shifts) {
+  if (!shifts.length) return "zadne";
+  return shifts.map((shift) => `${shift.date} ${shift.title}`).join(", ");
 }
 
 function friendlyCloudError(error) {
@@ -1900,7 +1907,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=129").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=130").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
