@@ -48,6 +48,8 @@ const cloud = {
   user: null,
   status: "Cloud není připojen.",
   saveTimer: null,
+  syncTimer: null,
+  remoteUpdatedAt: null,
   isApplyingRemote: false,
 };
 
@@ -112,6 +114,7 @@ function cacheElements() {
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
     signupButton: document.querySelector("#signupButton"),
     loginButton: document.querySelector("#loginButton"),
+    resendConfirmationButton: document.querySelector("#resendConfirmationButton"),
     resetPasswordButton: document.querySelector("#resetPasswordButton"),
     newPasswordInput: document.querySelector("#newPasswordInput"),
     updatePasswordButton: document.querySelector("#updatePasswordButton"),
@@ -199,6 +202,14 @@ function ensureCloudPasswordUi() {
     buttonList.after(resetButton);
   }
 
+  if (!document.querySelector("#resendConfirmationButton")) {
+    const resendButton = document.createElement("button");
+    resendButton.id = "resendConfirmationButton";
+    resendButton.type = "button";
+    resendButton.textContent = "Poslat potvrzení znovu";
+    document.querySelector("#resetPasswordButton")?.after(resendButton);
+  }
+
   if (!document.querySelector("#passwordResetBox")) {
     const resetBox = document.createElement("div");
     resetBox.className = "stack hidden";
@@ -271,6 +282,7 @@ function bindEvents() {
   });
   els.signupButton?.addEventListener("click", signUpWithPassword);
   els.loginButton?.addEventListener("click", signInWithPassword);
+  els.resendConfirmationButton?.addEventListener("click", resendSignupConfirmation);
   els.resetPasswordButton?.addEventListener("click", sendPasswordReset);
   els.updatePasswordButton?.addEventListener("click", updatePasswordFromRecovery);
   els.logoutButton?.addEventListener("click", signOutCloud);
@@ -670,6 +682,7 @@ async function handleCloudSession(session, options = {}) {
   cloud.user = session?.user || null;
   if (!cloud.user) {
     setCloudStatus("Nejsi přihlášená. Data jsou zatím jen v tomto zařízení.");
+    stopCloudPolling();
     renderCloud();
     return;
   }
@@ -677,6 +690,7 @@ async function handleCloudSession(session, options = {}) {
   setCloudStatus(`Přihlášeno jako ${cloud.user.email || "účet"}.`);
   renderCloud();
   if (options.loadRemote) await loadCloudData({ initial: true });
+  startCloudPolling();
 }
 
 async function signInWithEmail() {
@@ -712,6 +726,7 @@ async function signUpWithPassword() {
     const { data, error } = await cloud.client.auth.signUp({
       email: credentials.email,
       password: credentials.password,
+      options: { emailRedirectTo: `${location.origin}${location.pathname}` },
     });
     if (error) throw error;
     if (data.session) {
@@ -758,6 +773,31 @@ function readLoginCredentials() {
     return null;
   }
   return { email, password };
+}
+
+async function resendSignupConfirmation() {
+  const email = els.loginEmailInput?.value?.trim();
+  if (!email) {
+    setCloudStatus("Zadej e-mail, kam mám poslat potvrzení účtu.");
+    return;
+  }
+  if (!cloud.client) {
+    setCloudStatus("Cloud ještě není připravený.");
+    return;
+  }
+
+  try {
+    setCloudStatus("Posílám potvrzovací e-mail...");
+    const { error } = await cloud.client.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${location.origin}${location.pathname}` },
+    });
+    if (error) throw error;
+    setCloudStatus("Potvrzovací e-mail odeslán. Zkontroluj i spam nebo hromadnou poštu.");
+  } catch (error) {
+    setCloudStatus(`Potvrzení se nepodařilo poslat: ${friendlyCloudError(error)}`);
+  }
 }
 
 async function sendPasswordReset() {
@@ -869,6 +909,111 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
         updated_at: payload.updatedAt,
       }, { onConflict: "user_id" });
     if (error) throw error;
+    state = normalizeState(payload);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setCloudStatus(successMessage);
+  } catch (error) {
+    setCloudStatus(`Cloud se nepodařilo uložit: ${friendlyCloudError(error)}`);
+  }
+}
+
+async function fetchCloudProfile() {
+  const { data, error } = await cloud.client
+    .from(CLOUD_TABLE)
+    .select("data, updated_at")
+    .eq("user_id", cloud.user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+function applyCloudState(remoteState, statusMessage) {
+  cloud.isApplyingRemote = true;
+  state = normalizeState(remoteState);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  cloud.isApplyingRemote = false;
+  applyTheme();
+  render();
+  setCloudStatus(statusMessage);
+}
+
+function timestampValue(value) {
+  const time = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function startCloudPolling() {
+  stopCloudPolling();
+  cloud.syncTimer = setInterval(syncCloudIfNewer, 15000);
+}
+
+function stopCloudPolling() {
+  if (!cloud.syncTimer) return;
+  clearInterval(cloud.syncTimer);
+  cloud.syncTimer = null;
+}
+
+async function syncCloudIfNewer() {
+  if (!cloud.client || !cloud.user || cloud.isApplyingRemote) return;
+  try {
+    const data = await fetchCloudProfile();
+    if (!data?.data) return;
+    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at });
+    const remoteTime = timestampValue(data.updated_at || remoteState.updatedAt);
+    const localTime = timestampValue(state.updatedAt);
+    cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
+    if (remoteTime > localTime) {
+      applyCloudState(remoteState, "Načtena novější data z cloudu.");
+    }
+  } catch {
+    // Silent polling keeps the UI calm; manual cloud buttons still report errors.
+  }
+}
+
+async function loadCloudData(options = {}) {
+  if (!cloud.client || !cloud.user) return;
+  try {
+    setCloudStatus("Načítám data z cloudu...");
+    const data = await fetchCloudProfile();
+
+    if (!data?.data) {
+      await saveCloudNow("Cloud byl prázdný, uložila jsem sem aktuální data.");
+      return;
+    }
+
+    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at });
+    const remoteTime = timestampValue(data.updated_at || remoteState.updatedAt);
+    const localTime = timestampValue(state.updatedAt);
+    cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
+
+    if (options.force || remoteTime >= localTime) {
+      applyCloudState(remoteState, options.force ? "Data načtená z cloudu." : "Data synchronizovaná z cloudu.");
+      return;
+    }
+
+    await saveCloudNow("Tahle verze byla novější, uložila jsem ji do cloudu.");
+  } catch (error) {
+    cloud.isApplyingRemote = false;
+    setCloudStatus(`Cloud se nepodařilo načíst: ${friendlyCloudError(error)}`);
+  }
+}
+
+async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
+  if (!cloud.client || !cloud.user) {
+    setCloudStatus("Nejdřív se přihlas.");
+    return;
+  }
+  try {
+    const payload = { ...state, updatedAt: new Date().toISOString() };
+    const { error } = await cloud.client
+      .from(CLOUD_TABLE)
+      .upsert({
+        user_id: cloud.user.id,
+        data: payload,
+        updated_at: payload.updatedAt,
+      }, { onConflict: "user_id" });
+    if (error) throw error;
+    cloud.remoteUpdatedAt = payload.updatedAt;
     state = normalizeState(payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     setCloudStatus(successMessage);
@@ -1599,7 +1744,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=113").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=115").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

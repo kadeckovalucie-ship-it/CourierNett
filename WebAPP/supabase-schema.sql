@@ -4,6 +4,9 @@ create table if not exists public.couriernett_profiles (
   updated_at timestamptz not null default now()
 );
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.couriernett_profiles to authenticated;
+
 alter table public.couriernett_profiles enable row level security;
 
 drop policy if exists "Users can read their CourierNett profile" on public.couriernett_profiles;
@@ -27,3 +30,5 @@ for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+notify pgrst, 'reload schema';
