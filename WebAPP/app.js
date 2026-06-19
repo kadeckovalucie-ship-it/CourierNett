@@ -955,15 +955,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
   }
   try {
     const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    const remoteData = await fetchCloudProfile();
-    if (remoteData?.data) {
-      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
-      const protectedState = mergeProfileStates(payload, remoteState, true);
-      if (protectedState.shifts.length > payload.shifts.length) {
-        setCloudStatus(`Cloud ma ${remoteState.shifts.length} smen, tohle zarizeni ${payload.shifts.length}. Nejdřív dej Nacist profil.`);
-        return;
-      }
-    }
+    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen...`);
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1130,15 +1122,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
   }
   try {
     const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    const remoteData = await fetchCloudProfile();
-    if (remoteData?.data) {
-      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
-      const protectedState = mergeProfileStates(payload, remoteState, true);
-      if (protectedState.shifts.length > payload.shifts.length) {
-        setCloudStatus(`Cloud ma ${remoteState.shifts.length} smen, tohle zarizeni ${payload.shifts.length}. Nejdřív dej Nacist profil.`);
-        return;
-      }
-    }
+    setCloudStatus(`Odesilam z tohoto zarizeni ${payload.shifts.length} smen...`);
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1916,7 +1900,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=128").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=129").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
