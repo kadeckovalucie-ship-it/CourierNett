@@ -983,12 +983,65 @@ async function fetchCloudProfile() {
 
 function applyCloudState(remoteState, statusMessage) {
   cloud.isApplyingRemote = true;
-  state = normalizeState(remoteState);
+  state = normalizeState(remoteState, state);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   cloud.isApplyingRemote = false;
   applyTheme();
   render();
   setCloudStatus(statusMessage);
+}
+
+function mergeProfileStates(localState, remoteState, preferRemote = true) {
+  const local = normalizeState(localState);
+  const remote = normalizeState(remoteState, local);
+  const primary = preferRemote ? remote : local;
+  const secondary = preferRemote ? local : remote;
+  return normalizeState({
+    ...secondary,
+    ...primary,
+    expense: { ...secondary.expense, ...primary.expense },
+    business: { ...secondary.business, ...primary.business },
+    preferences: { ...secondary.preferences, ...primary.preferences },
+    shifts: mergeShifts(secondary.shifts, primary.shifts),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+function mergeShifts(secondaryShifts, primaryShifts) {
+  const merged = [];
+  const positions = new Map();
+  [...secondaryShifts, ...primaryShifts].forEach((shift) => {
+    const normalized = normalizeShift(shift);
+    const keys = shiftMergeKeys(normalized);
+    const index = keys.map((key) => positions.get(key)).find((value) => value != null);
+    if (index == null) {
+      positions.set(keys[0], merged.length);
+      positions.set(keys[1], merged.length);
+      merged.push(normalized);
+      return;
+    }
+    merged[index] = mergeShift(merged[index], normalized);
+    shiftMergeKeys(merged[index]).forEach((key) => positions.set(key, index));
+  });
+  return merged.sort(sortByDate);
+}
+
+function shiftMergeKeys(shift) {
+  return [
+    `id:${shift.id}`,
+    `day:${shift.date}`,
+  ];
+}
+
+function mergeShift(base, incoming) {
+  return normalizeShift({
+    ...base,
+    ...incoming,
+    kilometers: incoming.kilometers || base.kilometers,
+    hours: incoming.hours || base.hours,
+    income: incoming.income || base.income,
+    notes: incoming.notes || base.notes,
+  });
 }
 
 function timestampValue(value) {
@@ -1017,7 +1070,12 @@ async function syncCloudIfNewer() {
     const localTime = timestampValue(state.updatedAt);
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
     if (remoteTime > localTime) {
-      applyCloudState(remoteState, "Načtena novější data z cloudu.");
+      const mergedState = mergeProfileStates(state, remoteState, true);
+      applyCloudState(mergedState, "Nactena novejsi data z cloudu.");
+      if (state.shifts.length > remoteState.shifts.length) {
+        await saveCloudNow("Data sloucena s cloudem.");
+      }
+      return;
     }
   } catch {
     // Silent polling keeps the UI calm; manual cloud buttons still report errors.
@@ -1041,7 +1099,11 @@ async function loadCloudData(options = {}) {
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
 
     if (options.force || remoteTime >= localTime) {
-      applyCloudState(remoteState, options.force ? "Data načtená z cloudu." : "Data synchronizovaná z cloudu.");
+      const mergedState = mergeProfileStates(state, remoteState, true);
+      applyCloudState(mergedState, options.force ? "Data sloucena s cloudem." : "Data synchronizovana z cloudu.");
+      if (state.shifts.length > remoteState.shifts.length || options.force) {
+        await saveCloudNow("Data sloucena s cloudem.");
+      }
       return;
     }
 
@@ -1831,7 +1893,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=120").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=121").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
