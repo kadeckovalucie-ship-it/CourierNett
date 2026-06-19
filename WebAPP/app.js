@@ -954,7 +954,13 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
+    let payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
+    const remoteData = await fetchCloudProfile();
+    if (remoteData?.data) {
+      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
+      payload = mergeProfileStates(remoteState, payload, true);
+      payload.updatedAt = new Date().toISOString();
+    }
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1098,14 +1104,10 @@ async function loadCloudData(options = {}) {
     const localTime = timestampValue(state.updatedAt);
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
 
-    if (options.force || remoteTime >= localTime) {
-      const mergedState = mergeProfileStates(state, remoteState, true);
-      applyCloudState(mergedState, options.force ? "Data sloucena s cloudem." : "Data synchronizovana z cloudu.");
-      if (state.shifts.length > remoteState.shifts.length || options.force) {
-        await saveCloudNow("Data sloucena s cloudem.");
-      }
-      return;
-    }
+    const mergedState = mergeProfileStates(state, remoteState, options.force || remoteTime >= localTime);
+    applyCloudState(mergedState, options.force ? "Data sloucena s cloudem." : "Data synchronizovana z cloudu.");
+    await saveCloudNow("Data sloucena s cloudem.");
+    return;
 
     await saveCloudNow("Tahle verze byla novější, uložila jsem ji do cloudu.");
   } catch (error) {
@@ -1120,7 +1122,13 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
+    let payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
+    const remoteData = await fetchCloudProfile();
+    if (remoteData?.data) {
+      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
+      payload = mergeProfileStates(remoteState, payload, true);
+      payload.updatedAt = new Date().toISOString();
+    }
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1893,7 +1901,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=121").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=122").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
