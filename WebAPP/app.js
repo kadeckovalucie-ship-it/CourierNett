@@ -1227,9 +1227,9 @@ function bestMoney(lines) {
 
 function moneyCandidates(line) {
   const lower = normalizeText(line);
-  const matches = [...line.matchAll(/(\d{1,3}(?:\s?\d{3})*(?:[,.]\d{1,2})?|\d{2,6}(?:[,.]\d{1,2})?)\s*(?:kc|czk|kč)?/gi)];
+  const matches = [...line.matchAll(/(\d[\d\s.,'’`´]*(?:[,.]\s*\d{1,2})?)\s*(?:kc|czk|kč)?/gi)];
   return matches.map((match) => {
-    const value = number(match[1].replace(/\s/g, ""));
+    const value = parseMoneyValue(match[1], lower);
     let score = 0;
     if (value < 50) return null;
     if (lower.includes("celkovy prijem")) score += 10;
@@ -1241,6 +1241,28 @@ function moneyCandidates(line) {
     if (lower.includes("objedn")) score -= 3;
     return { value, score };
   }).filter(Boolean);
+}
+
+function parseMoneyValue(value, context = "") {
+  const cleaned = String(value)
+    .replace(/[^\d,.\s]/g, "")
+    .replace(/\s+/g, "");
+  if (!cleaned) return 0;
+
+  const separatorMatch = cleaned.match(/^(\d+)[,.](\d{1,2})$/);
+  if (separatorMatch) {
+    return Number(`${separatorMatch[1]}.${separatorMatch[2].padEnd(2, "0")}`) || 0;
+  }
+
+  const digits = cleaned.replace(/\D/g, "");
+  if (!digits) return 0;
+
+  if ((context.includes("kc") || context.includes("czk") || context.includes("prijem") || context.includes("vydelek"))
+      && digits.length >= 5) {
+    return Number(`${digits.slice(0, -2)}.${digits.slice(-2)}`) || 0;
+  }
+
+  return Number(digits) || 0;
 }
 
 function preferredHoursAfter(lines, labels) {
@@ -1744,7 +1766,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=115").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=116").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
