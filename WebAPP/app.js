@@ -1035,7 +1035,7 @@ function mergeShifts(secondaryShifts, primaryShifts) {
 function shiftMergeKeys(shift) {
   return [
     `id:${shift.id}`,
-    `day:${shift.date}`,
+    `day-service:${shift.date}:${shift.title}`,
   ];
 }
 
@@ -1105,7 +1105,7 @@ async function loadCloudData(options = {}) {
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
 
     const mergedState = mergeProfileStates(state, remoteState, options.force || remoteTime >= localTime);
-    applyCloudState(mergedState, options.force ? "Data sloucena s cloudem." : "Data synchronizovana z cloudu.");
+    applyCloudState(mergedState, `Slouceno: zarizeni ${state.shifts.length}, cloud ${remoteState.shifts.length}, vysledek ${mergedState.shifts.length}.`);
     await saveCloudNow("Data sloucena s cloudem.");
     return;
 
@@ -1140,7 +1140,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     cloud.remoteUpdatedAt = payload.updatedAt;
     state = normalizeState(payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    setCloudStatus(successMessage);
+    setCloudStatus(`${successMessage} V cloudu je ${state.shifts.length} smen.`);
   } catch (error) {
     setCloudStatus(`Cloud se nepodařilo uložit: ${friendlyCloudError(error)}`);
   }
@@ -1567,10 +1567,11 @@ function deleteMonth(month) {
 }
 
 function addOrMerge(partial) {
-  const existing = state.shifts.find((shift) => shift.date === partial.date);
+  const service = normalizeService(partial.title);
+  const existing = state.shifts.find((shift) => shift.date === partial.date && shift.title === service);
   if (existing) {
     Object.assign(existing, {
-      title: normalizeService(partial.title ?? existing.title),
+      title: service,
       kilometers: partial.kilometers ?? existing.kilometers,
       income: partial.income ?? existing.income,
       hours: partial.hours ?? existing.hours,
@@ -1901,7 +1902,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=122").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=124").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
