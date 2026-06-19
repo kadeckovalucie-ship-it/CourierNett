@@ -370,15 +370,34 @@ function migrateLegacyState() {
   return null;
 }
 
-function normalizeState(data) {
+function normalizeState(data, fallback = {}) {
   return {
     shifts: Array.isArray(data.shifts) ? data.shifts.map(normalizeShift).sort(sortByDate) : [],
     selectedMonth: data.selectedMonth || currentMonth(),
-    expense: { ...defaults.expense, ...(data.expense || {}) },
+    expense: normalizeExpense(data.expense, fallback.expense),
     business: { ...defaults.business, ...(data.business || {}) },
     preferences: { ...defaults.preferences, ...(data.preferences || {}) },
     demoDataVersion: Number(data.demoDataVersion) || 0,
     updatedAt: data.updatedAt || null,
+  };
+}
+
+function normalizeExpense(expense = {}, fallback = {}) {
+  const fallbackExpense = { ...defaults.expense, ...(fallback || {}) };
+  const merged = { ...fallbackExpense, ...(expense || {}) };
+  const fuelType = ["gasoline", "diesel", "lpg"].includes(merged.fuelType)
+    ? merged.fuelType
+    : fallbackExpense.fuelType;
+  return {
+    consumptionLitersPer100km: number(merged.consumptionLitersPer100km),
+    fuelPricePerLiter: number(merged.fuelPricePerLiter),
+    vehicleRent: number(merged.vehicleRent),
+    fuelType: ["gasoline", "diesel", "lpg"].includes(fuelType) ? fuelType : defaults.expense.fuelType,
+    productionYear: number(merged.productionYear) || number(fallbackExpense.productionYear) || defaults.expense.productionYear,
+    averageGasolinePrice: number(merged.averageGasolinePrice),
+    averageDieselPrice: number(merged.averageDieselPrice),
+    averageLpgPrice: number(merged.averageLpgPrice),
+    fuelPriceUpdatedAt: merged.fuelPriceUpdatedAt || null,
   };
 }
 
@@ -407,6 +426,7 @@ function saveAndRender() {
 
 function save() {
   state.updatedAt = new Date().toISOString();
+  state = normalizeState(state, state);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   queueCloudSave();
 }
@@ -880,7 +900,7 @@ async function loadCloudData(options = {}) {
       return;
     }
 
-    state = normalizeState(data.data);
+    state = normalizeState(data.data, state);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     applyTheme();
     render();
@@ -903,7 +923,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    const payload = { ...state, updatedAt: new Date().toISOString() };
+    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -961,7 +981,7 @@ async function syncCloudIfNewer() {
   try {
     const data = await fetchCloudProfile();
     if (!data?.data) return;
-    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at });
+    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at }, state);
     const remoteTime = timestampValue(data.updated_at || remoteState.updatedAt);
     const localTime = timestampValue(state.updatedAt);
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
@@ -984,7 +1004,7 @@ async function loadCloudData(options = {}) {
       return;
     }
 
-    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at });
+    const remoteState = normalizeState({ ...data.data, updatedAt: data.data.updatedAt || data.updated_at }, state);
     const remoteTime = timestampValue(data.updated_at || remoteState.updatedAt);
     const localTime = timestampValue(state.updatedAt);
     cloud.remoteUpdatedAt = data.updated_at || remoteState.updatedAt;
@@ -1007,7 +1027,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    const payload = { ...state, updatedAt: new Date().toISOString() };
+    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1218,14 +1238,19 @@ function preferredMoneyAfter(lines, label) {
   for (let index = 0; index < lines.length; index += 1) {
     if (!normalizeText(lines[index]).includes(label)) continue;
     const windowText = lines.slice(index, index + 3);
-    const values = windowText.flatMap(moneyCandidates).sort(scoreSort);
+    const values = [
+      ...moneyCandidates(windowText.join(" ")),
+      ...windowText.flatMap(moneyCandidates),
+    ].sort(scoreSort);
     if (values[0]) return values[0].value;
   }
   return null;
 }
 
 function bestMoney(lines) {
-  return lines.flatMap(moneyCandidates).sort(scoreSort)[0]?.value || null;
+  const joinedCandidates = lines
+    .flatMap((_, index) => moneyCandidates(lines.slice(index, index + 3).join(" ")));
+  return [...joinedCandidates, ...lines.flatMap(moneyCandidates)].sort(scoreSort)[0]?.value || null;
 }
 
 function moneyCandidates(line) {
@@ -1775,7 +1800,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=117").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=119").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
