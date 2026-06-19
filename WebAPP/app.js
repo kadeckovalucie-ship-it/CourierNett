@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
   removeLegacyTabIcons();
   bindEvents();
+  setupClearOnFocusFields();
   syncForms();
   applyTheme();
   render();
@@ -68,6 +69,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function removeLegacyTabIcons() {
   document.querySelectorAll(".tabbar button span").forEach((icon) => icon.remove());
+}
+
+function setupClearOnFocusFields() {
+  const selector = [
+    "input[type='number']",
+    "input[type='text']",
+    "textarea",
+  ].join(",");
+
+  document.querySelectorAll(selector).forEach((field) => {
+    field.addEventListener("focus", () => {
+      if (field.dataset.clearOnFocusActive === "true" || field.value === "") return;
+      field.dataset.clearOnFocusActive = "true";
+      field.dataset.clearOnFocusValue = field.value;
+      field.value = "";
+    });
+
+    field.addEventListener("input", () => {
+      if (field.value === "") return;
+      delete field.dataset.clearOnFocusActive;
+      delete field.dataset.clearOnFocusValue;
+    });
+
+    field.addEventListener("blur", () => {
+      if (field.dataset.clearOnFocusActive !== "true" || field.value !== "") return;
+      field.value = field.dataset.clearOnFocusValue || "";
+      delete field.dataset.clearOnFocusActive;
+      delete field.dataset.clearOnFocusValue;
+    });
+  });
 }
 
 function cacheElements() {
@@ -1800,7 +1831,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=119").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=120").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
