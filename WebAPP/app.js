@@ -954,13 +954,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    let payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    const remoteData = await fetchCloudProfile();
-    if (remoteData?.data) {
-      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
-      payload = mergeProfileStates(remoteState, payload, true);
-      payload.updatedAt = new Date().toISOString();
-    }
+    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1122,13 +1116,7 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     return;
   }
   try {
-    let payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
-    const remoteData = await fetchCloudProfile();
-    if (remoteData?.data) {
-      const remoteState = normalizeState({ ...remoteData.data, updatedAt: remoteData.data.updatedAt || remoteData.updated_at }, payload);
-      payload = mergeProfileStates(remoteState, payload, true);
-      payload.updatedAt = new Date().toISOString();
-    }
+    const payload = normalizeState({ ...state, updatedAt: new Date().toISOString() });
     const { error } = await cloud.client
       .from(CLOUD_TABLE)
       .upsert({
@@ -1902,7 +1890,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=124").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=126").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
