@@ -974,7 +974,11 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     if (error) throw error;
     state = normalizeState(payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    setCloudStatus(successMessage);
+    const savedData = await fetchCloudProfile();
+    const savedState = savedData?.data
+      ? normalizeState({ ...savedData.data, updatedAt: savedData.data.updatedAt || savedData.updated_at }, state)
+      : state;
+    setCloudStatus(`${successMessage} Server potvrdil ${savedState.shifts.length} smen.`);
   } catch (error) {
     setCloudStatus(`Cloud se nepodařilo uložit: ${friendlyCloudError(error)}`);
   }
@@ -1146,7 +1150,11 @@ async function saveCloudNow(successMessage = "Data uložená do cloudu.") {
     cloud.remoteUpdatedAt = payload.updatedAt;
     state = normalizeState(payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    setCloudStatus(`${successMessage} V cloudu je ${state.shifts.length} smen.`);
+    const savedData = await fetchCloudProfile();
+    const savedState = savedData?.data
+      ? normalizeState({ ...savedData.data, updatedAt: savedData.data.updatedAt || savedData.updated_at }, state)
+      : state;
+    setCloudStatus(`${successMessage} Server potvrdil ${savedState.shifts.length} smen.`);
   } catch (error) {
     setCloudStatus(`Cloud se nepodařilo uložit: ${friendlyCloudError(error)}`);
   }
@@ -1908,7 +1916,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=127").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=128").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
