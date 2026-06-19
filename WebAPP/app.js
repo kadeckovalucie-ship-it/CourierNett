@@ -489,14 +489,17 @@ function toggleService(service) {
 }
 
 function renderMetrics() {
-  const totals = totalsFor(displayedShifts());
+  const shifts = displayedShifts();
+  const totals = totalsFor(shifts);
   const profitPerKm = totals.kilometers > 0 ? totals.profit / totals.kilometers : null;
+  const avgFuelPerShift = averageFuelCostPerShift(shifts);
   const items = [
     ["Příjem", money(totals.income)],
     ["Náklady", money(totals.costs)],
     ["Čistý zisk", money(totals.profit), totals.profit >= 0 ? "good" : "bad"],
     ["Kč/h", totals.profitPerHour == null ? "Bez hodin" : money(totals.profitPerHour), totals.profit >= 0 ? "good" : "bad"],
     ["Kč/km", profitPerKm == null ? "Bez km" : money(profitPerKm), totals.profit >= 0 ? "good" : "bad"],
+    ["Palivo/sm\u011bna", avgFuelPerShift == null ? "Bez km" : money(avgFuelPerShift)],
   ];
   els.metricGrid.innerHTML = items.map(metricMarkup).join("");
 }
@@ -1520,6 +1523,12 @@ function breakdownFor(shift) {
   };
 }
 
+function averageFuelCostPerShift(shifts) {
+  const shiftsWithKilometers = shifts.filter((shift) => number(shift.kilometers) > 0);
+  if (!shiftsWithKilometers.length) return null;
+  return shiftsWithKilometers.reduce((total, shift) => total + breakdownFor(shift).fuelCost, 0) / shiftsWithKilometers.length;
+}
+
 function amortizationRatePerKm() {
   const year = Number(state.expense.productionYear) || 2020;
   const ageCoefficient = year >= 2020 ? 1.2 : year >= 2010 ? 1.0 : year >= 2000 ? 1.3 : 1.6;
@@ -1766,7 +1775,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=116").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=117").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
