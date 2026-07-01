@@ -7,6 +7,20 @@ const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/
 const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 const SUPABASE_JS_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const CLOUD_TABLE = "couriernett_profiles";
+const BUSINESS_RULES_2026 = Object.freeze({
+  averageWage: 48967,
+  higherTaxThreshold: 1762812,
+  basicTaxpayerCredit: 30840,
+  socialRate: 0.292,
+  socialAssessmentShare: 0.55,
+  socialMainMonthlyMinimum: 5005,
+  socialSideMonthlyMinimum: 1574,
+  socialSideDecisionAmount: 117521,
+  healthRate: 0.135,
+  healthAssessmentShare: 0.5,
+  healthMainMonthlyMinimum: 3306,
+  flatExpenseRevenueCap: 2000000,
+});
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
@@ -56,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
   ensureCloudPasswordUi();
   cacheElements();
+  runCalculationSelfCheck();
   removeLegacyTabIcons();
   bindEvents();
   setupClearOnFocusFields();
@@ -145,6 +160,7 @@ function cacheElements() {
     amortizationRate: document.querySelector("#amortizationRate"),
     averageIncome: document.querySelector("#averageIncome"),
     businessEstimate: document.querySelector("#businessEstimate"),
+    calculationWarning: document.querySelector("#calculationWarning"),
     loginEmailInput: document.querySelector("#loginEmailInput"),
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
     magicLinkButton: document.querySelector("#magicLinkButton"),
@@ -1805,17 +1821,28 @@ function averageIncomePerShift() {
 }
 
 function businessEstimate() {
-  const monthlyRevenue = averageIncomePerShift() * state.business.monthlyShiftCount;
+  return businessEstimateFor(averageIncomePerShift(), state.business);
+}
+
+function businessEstimateFor(averageIncome, business) {
+  const monthlyRevenue = averageIncome * business.monthlyShiftCount;
   const annualRevenue = monthlyRevenue * 12;
-  const flatExpenses = Math.min(annualRevenue * state.business.flatExpenseRate, 1600000);
+  const flatExpenses = Math.min(
+    annualRevenue * business.flatExpenseRate,
+    BUSINESS_RULES_2026.flatExpenseRevenueCap * business.flatExpenseRate,
+  );
   const profitBase = Math.max(0, annualRevenue - flatExpenses);
   const incomeTax = calculateIncomeTax(profitBase);
-  const social = state.business.isSideIncome
-    ? (profitBase <= 117521 ? 0 : Math.max(profitBase * 0.55 * 0.292, 1574 * 12))
-    : Math.max(profitBase * 0.55 * 0.292, 5720 * 12);
-  const health = state.business.isSideIncome
-    ? profitBase * 0.5 * 0.135
-    : Math.max(profitBase * 0.5 * 0.135, 3306 * 12);
+  const calculatedSocial = profitBase * BUSINESS_RULES_2026.socialAssessmentShare * BUSINESS_RULES_2026.socialRate;
+  const social = business.isSideIncome
+    ? (profitBase <= BUSINESS_RULES_2026.socialSideDecisionAmount
+      ? 0
+      : Math.max(calculatedSocial, BUSINESS_RULES_2026.socialSideMonthlyMinimum * 12))
+    : Math.max(calculatedSocial, BUSINESS_RULES_2026.socialMainMonthlyMinimum * 12);
+  const calculatedHealth = profitBase * BUSINESS_RULES_2026.healthAssessmentShare * BUSINESS_RULES_2026.healthRate;
+  const health = business.isSideIncome
+    ? calculatedHealth
+    : Math.max(calculatedHealth, BUSINESS_RULES_2026.healthMainMonthlyMinimum * 12);
   return {
     monthlyRevenue,
     annualRevenue,
@@ -1827,8 +1854,33 @@ function businessEstimate() {
 }
 
 function calculateIncomeTax(taxBase) {
-  const threshold = 48967 * 36;
-  return Math.min(taxBase, threshold) * 0.15 + Math.max(0, taxBase - threshold) * 0.23;
+  const grossTax = Math.min(taxBase, BUSINESS_RULES_2026.higherTaxThreshold) * 0.15
+    + Math.max(0, taxBase - BUSINESS_RULES_2026.higherTaxThreshold) * 0.23;
+  return Math.max(0, grossTax - BUSINESS_RULES_2026.basicTaxpayerCredit);
+}
+
+function runCalculationSelfCheck() {
+  const main = businessEstimateFor(2500, { monthlyShiftCount: 20, flatExpenseRate: 0.6, isSideIncome: false });
+  const sideLow = businessEstimateFor(1000, { monthlyShiftCount: 10, flatExpenseRate: 0.6, isSideIncome: true });
+  const capped = businessEstimateFor(12500, { monthlyShiftCount: 20, flatExpenseRate: 0.6, isSideIncome: false });
+  const checks = [
+    closeEnough(main.annualRevenue, 600000),
+    closeEnough(main.monthlyIncomeTax * 12, 5160),
+    closeEnough(main.monthlySocialInsurance * 12, 60060),
+    closeEnough(main.monthlyHealthInsurance * 12, 39672),
+    closeEnough(sideLow.monthlyIncomeTax, 0),
+    closeEnough(sideLow.monthlySocialInsurance, 0),
+    closeEnough(sideLow.monthlyHealthInsurance * 12, 3240),
+    closeEnough(capped.monthlyIncomeTax * 12, 242135.04),
+  ];
+  const valid = checks.every(Boolean);
+  document.documentElement.dataset.calculationStatus = valid ? "valid" : "invalid";
+  els.calculationWarning?.classList.toggle("hidden", valid);
+  if (!valid) console.error("Automatická kontrola OSVČ výpočtů selhala.", checks);
+}
+
+function closeEnough(actual, expected) {
+  return Math.abs(actual - expected) < 0.01;
 }
 
 function createDemoData() {
@@ -2043,7 +2095,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=137").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=138").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
