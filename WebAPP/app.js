@@ -1356,7 +1356,7 @@ function parseBoltEarningsText(text) {
   return {
     date: parseImportDate(text) || (normalizeText(text).includes("dnes") ? toDateInput(new Date()) : null),
     income: valueNextToLabel(lines, ["hruby zisk"]),
-    kilometers: valueNextToLabel(lines, ["ujeta vzdalenost", "vzdalenost (km)"]),
+    kilometers: boltKilometers(lines),
     hours: null,
   };
 }
@@ -1380,6 +1380,30 @@ function preferredMoneyAfter(lines, label) {
       ...windowText.flatMap(moneyCandidates),
     ].sort(scoreSort);
     if (values[0]) return values[0].value;
+  }
+  return null;
+}
+
+function boltKilometers(lines) {
+  const labels = ["ujeta vzdalenost", "vzdalenost (km)", "vzdalenost km"];
+  const labelIndex = lines.findIndex((line) => labels.some((label) => normalizeText(line).includes(label)));
+  if (labelIndex < 0) return null;
+
+  const candidates = [
+    lines[labelIndex],
+    lines[labelIndex - 1],
+    lines[labelIndex + 1],
+    lines[labelIndex - 2],
+    lines[labelIndex + 2],
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeText(candidate || "");
+    if (!normalized || normalized.includes("kc") || normalized.includes("czk")) continue;
+    const values = [...String(candidate).matchAll(/\d{1,3}(?:[\s.,]\d{1,2})?/g)]
+      .map((match) => number(match[0].replace(/\s/g, "")))
+      .filter((value) => value > 0 && value < 1000);
+    if (values.length) return values[0];
   }
   return null;
 }
@@ -1962,7 +1986,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=131").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=132").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
