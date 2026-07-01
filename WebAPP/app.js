@@ -1204,6 +1204,9 @@ async function importImageFile() {
   try {
     const text = await recognizeImageText(file);
     const result = selectedImportService === "Bolt" ? parseBoltEarningsText(text) : parseEarningsText(text);
+    if (selectedImportService === "Bolt") {
+      result.kilometers = await recognizeBoltKilometers(file) || result.kilometers;
+    }
     if (!result.income && !result.hours && !result.kilometers) throw new Error("Ve screenshotu jsem nenašla údaje směny.");
     if (result.date) els.importDate.value = result.date;
     if (result.kilometers) els.importKm.value = numberTextForInput(result.kilometers);
@@ -1318,6 +1321,41 @@ function loadTesseract() {
     script.onerror = () => reject(new Error("OCR knihovnu se nepodarilo nacist."));
     document.head.append(script);
   });
+}
+
+async function recognizeBoltKilometers(file) {
+  const image = await createImageBitmap(file);
+  try {
+    const scale = 4;
+    const x = Math.round(image.width * 0.04);
+    const y = Math.round(image.height * 0.75);
+    const width = Math.round(image.width * 0.72);
+    const height = Math.round(image.height * 0.14);
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, x, y, width, height, 0, 0, canvas.width, canvas.height);
+
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    for (let index = 0; index < pixels.data.length; index += 4) {
+      const light = (pixels.data[index] + pixels.data[index + 1] + pixels.data[index + 2]) / 3;
+      const value = light > 105 ? 0 : 255;
+      pixels.data[index] = value;
+      pixels.data[index + 1] = value;
+      pixels.data[index + 2] = value;
+    }
+    context.putImageData(pixels, 0, 0);
+
+    const result = await globalThis.Tesseract.recognize(canvas, "eng", {
+      tessedit_char_whitelist: "0123456789.,",
+    });
+    const match = String(result?.data?.text || "").match(/\d{1,3}[,.]\d{1,2}/);
+    const kilometers = match ? number(match[0]) : 0;
+    return kilometers > 0 && kilometers < 1000 ? kilometers : null;
+  } finally {
+    image.close();
+  }
 }
 
 function parseVehicleLogText(text) {
@@ -1986,7 +2024,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=132").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=133").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
