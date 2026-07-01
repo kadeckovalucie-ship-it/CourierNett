@@ -119,6 +119,7 @@ function cacheElements() {
   Object.assign(els, {
     screenTitle: document.querySelector("#screenTitle"),
     screenEyebrow: document.querySelector("#screenEyebrow"),
+    settingsButton: document.querySelector("#settingsButton"),
     aboutButton: document.querySelector("#aboutButton"),
     themeToggle: document.querySelector("#themeToggle"),
     aboutDialog: document.querySelector("#aboutDialog"),
@@ -290,6 +291,7 @@ function bindEvents() {
   els.tabs.forEach((tab) => {
     tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
   });
+  els.settingsButton.addEventListener("click", () => switchScreen("preferences"));
   els.aboutButton.addEventListener("click", () => els.aboutDialog.showModal());
   els.closeAboutButton.addEventListener("click", () => els.aboutDialog.close());
 
@@ -511,6 +513,7 @@ function switchScreen(screen) {
   activeScreen = screen;
   els.screens.forEach((item) => item.classList.toggle("active", item.id === `screen-${screen}`));
   els.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.screen === screen));
+  els.settingsButton.classList.toggle("active", screen === "preferences");
   render();
 }
 
@@ -2095,7 +2098,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=138").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=140").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

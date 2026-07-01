@@ -8,14 +8,15 @@
     <meta name="apple-mobile-web-app-title" content="CourierNett">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>CourierNett</title>
-    <link rel="icon" href="./icon.svg?v=138" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg?v=138">
-    <link rel="manifest" href="./manifest.webmanifest?v=138">
-    <link rel="stylesheet" href="./styles.css?v=138">
+    <link rel="icon" href="./icon.svg?v=140" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon.svg?v=140">
+    <link rel="manifest" href="./manifest.webmanifest?v=140">
+    <link rel="stylesheet" href="./styles.css?v=140">
   </head>
   <body>
     <div id="app">
       <header class="topbar">
+        <button class="settings-button" id="settingsButton" type="button" aria-label="Nastavení">⚙</button>
         <div class="topbar-title">
           <p id="screenEyebrow">Přehled</p>
           <h1 id="screenTitle">Uživatel: nepřihlášen</h1>
@@ -96,14 +97,14 @@
                 <span>Rok výroby</span>
                 <input name="productionYear" type="number" min="1980" max="2035" step="1">
               </label>
-              <div class="field-row readonly">
+              <div class="field-row readonly hidden" aria-hidden="true">
                 <span>Amortizace</span>
                 <strong id="amortizationRate">0 Kč / km</strong>
               </div>
             </form>
           </section>
 
-          <section class="panel">
+          <section class="panel hidden" aria-hidden="true">
             <h2>OSVČ nastavení</h2>
             <form class="stack" id="businessForm">
               <label class="field-row">
@@ -194,7 +195,6 @@
         <button class="active" data-screen="dashboard" type="button">Přehled</button>
         <button data-screen="history" type="button">Historie</button>
         <button data-screen="costs" type="button">Náklady</button>
-        <button data-screen="preferences" type="button">Nastavení</button>
       </nav>
     </div>
 
@@ -401,7 +401,7 @@
       </article>
     </dialog>
 
-    <script src="./supabase-config.js?v=138"></script>
-    <script src="./app.js?v=138"></script>
+    <script src="./supabase-config.js?v=140"></script>
+    <script src="./app.js?v=140"></script>
   </body>
 </html>

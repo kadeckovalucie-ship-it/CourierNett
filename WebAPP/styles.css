@@ -94,6 +94,24 @@ button {
   gap: 7px;
 }
 
+.settings-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.settings-button.active {
+  background: var(--accent-soft);
+}
+
 .info-button {
   width: 36px;
   height: 36px;
@@ -556,7 +574,7 @@ main {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 2px;
   padding: 7px 8px calc(env(safe-area-inset-bottom) + 7px);
   background: color-mix(in srgb, var(--panel) 92%, transparent);
