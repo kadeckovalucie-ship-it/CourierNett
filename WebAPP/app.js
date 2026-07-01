@@ -149,6 +149,7 @@ function cacheElements() {
     themeSelect: document.querySelector("#themeSelect"),
     loginEmailInput: document.querySelector("#loginEmailInput"),
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
+    magicLinkButton: document.querySelector("#magicLinkButton"),
     signupButton: document.querySelector("#signupButton"),
     loginButton: document.querySelector("#loginButton"),
     resendConfirmationButton: document.querySelector("#resendConfirmationButton"),
@@ -222,6 +223,14 @@ function ensureCloudPasswordUi() {
 
   loginButton.classList.remove("full", "primary-action");
   loginButton.textContent = "Přihlásit";
+
+  if (!document.querySelector("#magicLinkButton")) {
+    const magicLinkButton = document.createElement("button");
+    magicLinkButton.id = "magicLinkButton";
+    magicLinkButton.type = "button";
+    magicLinkButton.textContent = "Poslat přihlašovací odkaz";
+    buttonList.after(magicLinkButton);
+  }
 
   if (!document.querySelector("#signupButton")) {
     const signupButton = document.createElement("button");
@@ -321,6 +330,7 @@ function bindEvents() {
   });
   els.signupButton?.addEventListener("click", signUpWithPassword);
   els.loginButton?.addEventListener("click", signInWithPassword);
+  els.magicLinkButton?.addEventListener("click", signInWithEmail);
   els.resendConfirmationButton?.addEventListener("click", resendSignupConfirmation);
   els.resetPasswordButton?.addEventListener("click", sendPasswordReset);
   els.updatePasswordButton?.addEventListener("click", updatePasswordFromRecovery);
@@ -1175,6 +1185,12 @@ function shiftSummary(shifts) {
 
 function friendlyCloudError(error) {
   const message = error?.message || String(error || "neznama chyba");
+  if (/invalid login credentials/i.test(message)) {
+    return "e-mail nebo heslo nesouhlasí. Pokud byl účet vytvořen přes e-mailový odkaz, použij „Poslat přihlašovací odkaz“.";
+  }
+  if (/email not confirmed/i.test(message)) {
+    return "e-mail ještě není potvrzený. Použij „Poslat potvrzení znovu“.";
+  }
   if (message.includes(CLOUD_TABLE) || message.includes("schema cache")) {
     return "chybí cloudová tabulka. Spusť SQL soubor WebAPP/supabase-schema.sql v Supabase.";
   }
@@ -2024,7 +2040,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=133").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=134").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
