@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-title" content="CourierNett">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>CourierNett</title>
-    <link rel="icon" href="./icon.svg?v=134" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg?v=134">
-    <link rel="manifest" href="./manifest.webmanifest?v=134">
-    <link rel="stylesheet" href="./styles.css?v=134">
+    <link rel="icon" href="./icon.svg?v=135" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon.svg?v=135">
+    <link rel="manifest" href="./manifest.webmanifest?v=135">
+    <link rel="stylesheet" href="./styles.css?v=135">
   </head>
   <body>
     <div id="app">
@@ -20,7 +20,13 @@
           <p id="screenEyebrow">Přehled</p>
           <h1 id="screenTitle">Název profilu</h1>
         </div>
-        <button class="info-button" id="aboutButton" type="button" aria-label="O projektu">i</button>
+        <div class="topbar-actions">
+          <button class="info-button" id="aboutButton" type="button" aria-label="O projektu">i</button>
+          <label class="theme-switch" aria-label="Přepnout světlý a tmavý režim">
+            <input id="themeToggle" type="checkbox" role="switch">
+            <span aria-hidden="true"></span>
+          </label>
+        </div>
       </header>
 
       <main>
@@ -136,18 +142,6 @@
             <label class="field-row">
               <span>Název profilu</span>
               <input id="profileNameInput" type="text">
-            </label>
-          </section>
-
-          <section class="panel">
-            <h2>Tmavý a světlý režim</h2>
-            <label class="field-row">
-              <span>Barevný režim</span>
-              <select id="themeSelect">
-                <option value="system">Podle zařízení</option>
-                <option value="light">Světlý</option>
-                <option value="dark">Tmavý</option>
-              </select>
             </label>
           </section>
 
@@ -414,7 +408,7 @@
       </article>
     </dialog>
 
-    <script src="./supabase-config.js?v=134"></script>
-    <script src="./app.js?v=134"></script>
+    <script src="./supabase-config.js?v=135"></script>
+    <script src="./app.js?v=135"></script>
   </body>
 </html>

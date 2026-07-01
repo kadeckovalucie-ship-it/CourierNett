@@ -1,7 +1,6 @@
 const STORAGE_KEY = "couriernett-ios-web-v1";
 const LEGACY_KEYS = ["naklady-smen-profiles-v1", "naklady-smen-web-v1"];
 const SERVICES = ["Wolt", "Foodora", "Bolt"];
-const THEMES = ["system", "light", "dark"];
 const DEMO_DATA_VERSION = 2;
 const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
@@ -106,6 +105,7 @@ function cacheElements() {
     screenTitle: document.querySelector("#screenTitle"),
     screenEyebrow: document.querySelector("#screenEyebrow"),
     aboutButton: document.querySelector("#aboutButton"),
+    themeToggle: document.querySelector("#themeToggle"),
     aboutDialog: document.querySelector("#aboutDialog"),
     closeAboutButton: document.querySelector("#closeAboutButton"),
     screens: [...document.querySelectorAll(".screen")],
@@ -146,7 +146,6 @@ function cacheElements() {
     averageIncome: document.querySelector("#averageIncome"),
     businessEstimate: document.querySelector("#businessEstimate"),
     profileNameInput: document.querySelector("#profileNameInput"),
-    themeSelect: document.querySelector("#themeSelect"),
     loginEmailInput: document.querySelector("#loginEmailInput"),
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
     magicLinkButton: document.querySelector("#magicLinkButton"),
@@ -323,8 +322,8 @@ function bindEvents() {
     state.preferences.profileName = els.profileNameInput.value || defaults.preferences.profileName;
     saveAndRender();
   });
-  els.themeSelect.addEventListener("change", () => {
-    state.preferences.theme = THEMES.includes(els.themeSelect.value) ? els.themeSelect.value : "system";
+  els.themeToggle.addEventListener("change", () => {
+    state.preferences.theme = els.themeToggle.checked ? "dark" : "light";
     save();
     applyTheme();
   });
@@ -526,7 +525,7 @@ function syncForms() {
   els.businessForm.isSideIncome.checked = state.business.isSideIncome;
   els.historySortToggle.checked = state.preferences.historySortAscending;
   els.profileNameInput.value = state.preferences.profileName;
-  els.themeSelect.value = state.preferences.theme;
+  els.themeToggle.checked = resolvedTheme() === "dark";
   els.importDate.value ||= toDateInput(new Date());
 }
 
@@ -1922,11 +1921,16 @@ function exportPdf() {
 }
 
 function applyTheme() {
+  const resolved = resolvedTheme();
+  document.documentElement.dataset.theme = resolved;
+  if (els.themeToggle) els.themeToggle.checked = resolved === "dark";
+}
+
+function resolvedTheme() {
   const theme = state.preferences.theme;
-  const resolved = theme === "system"
+  return theme === "system"
     ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
     : theme;
-  document.documentElement.dataset.theme = resolved;
 }
 
 function currentMonth() {
@@ -2040,7 +2044,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=134").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=135").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
