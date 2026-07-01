@@ -145,7 +145,6 @@ function cacheElements() {
     amortizationRate: document.querySelector("#amortizationRate"),
     averageIncome: document.querySelector("#averageIncome"),
     businessEstimate: document.querySelector("#businessEstimate"),
-    profileNameInput: document.querySelector("#profileNameInput"),
     loginEmailInput: document.querySelector("#loginEmailInput"),
     loginPasswordInput: document.querySelector("#loginPasswordInput"),
     magicLinkButton: document.querySelector("#magicLinkButton"),
@@ -318,10 +317,6 @@ function bindEvents() {
   els.businessForm.addEventListener("input", updateBusiness);
   els.businessForm.addEventListener("change", updateBusiness);
 
-  els.profileNameInput.addEventListener("input", () => {
-    state.preferences.profileName = els.profileNameInput.value || defaults.preferences.profileName;
-    saveAndRender();
-  });
   els.themeToggle.addEventListener("change", () => {
     state.preferences.theme = els.themeToggle.checked ? "dark" : "light";
     save();
@@ -480,7 +475,7 @@ function save() {
 }
 
 function render() {
-  els.screenTitle.textContent = state.preferences.profileName || defaults.preferences.profileName;
+  els.screenTitle.textContent = userLabel();
   els.screenEyebrow.textContent = screenLabel(activeScreen);
   els.monthInput.value = state.selectedMonth;
   els.monthButton.textContent = shortMonthLabel(state.selectedMonth);
@@ -524,7 +519,6 @@ function syncForms() {
   els.businessForm.flatExpenseRate.value = state.business.flatExpenseRate;
   els.businessForm.isSideIncome.checked = state.business.isSideIncome;
   els.historySortToggle.checked = state.preferences.historySortAscending;
-  els.profileNameInput.value = state.preferences.profileName;
   els.themeToggle.checked = resolvedTheme() === "dark";
   els.importDate.value ||= toDateInput(new Date());
 }
@@ -1169,12 +1163,17 @@ function setCloudStatus(message) {
 
 function renderCloud() {
   if (!els.cloudStatus) return;
+  els.screenTitle.textContent = userLabel();
   els.cloudStatus.textContent = cloud.status;
   els.cloudSignedOut?.classList.toggle("hidden", !!cloud.user);
   els.cloudSignedIn?.classList.toggle("hidden", !cloud.user);
   if (cloud.user) els.passwordResetBox?.classList.add("hidden");
   if (els.cloudUser) els.cloudUser.textContent = cloud.user?.email || "-";
   if (els.cloudLocalCount) els.cloudLocalCount.textContent = `${state.shifts.length} smen: ${shiftSummary(state.shifts)}`;
+}
+
+function userLabel() {
+  return `Uživatel: ${cloud.user?.email || "nepřihlášen"}`;
 }
 
 function shiftSummary(shifts) {
@@ -1908,7 +1907,7 @@ function exportPdf() {
     <html><head><meta charset="utf-8"><title>Přehled ${state.selectedMonth}</title>
     <style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:32px;color:#111}h1{margin:0}.meta{color:#666}.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:20px 0}.box{border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center}.box span{display:block;color:#666;font-size:11px}.box strong{font-size:17px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}td:nth-child(n+3),th:nth-child(n+3){text-align:right}</style>
     </head><body>
-    <h1>${longMonthLabel(state.selectedMonth)}</h1><p class="meta">${escapeHtml(state.preferences.profileName)}</p>
+    <h1>${longMonthLabel(state.selectedMonth)}</h1><p class="meta">${escapeHtml(userLabel())}</p>
     <section class="summary"><div class="box"><span>Zisk</span><strong>${money(totals.profit)}</strong></div><div class="box"><span>Hodiny</span><strong>${hours(totals.hours)}</strong></div><div class="box"><span>Kilometry</span><strong>${km(totals.kilometers)}</strong></div><div class="box"><span>Obrat</span><strong>${money(totals.income)}</strong></div><div class="box"><span>Náklady</span><strong>${money(totals.costs)}</strong></div></section>
     <table><thead><tr><th>Datum</th><th>Směna</th><th>Obrat</th><th>Kilometry</th><th>Hodiny</th><th>Čistý zisk</th></tr></thead><tbody>${rows}</tbody></table>
     </body></html>
@@ -2044,7 +2043,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=135").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=136").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

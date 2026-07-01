@@ -82,6 +82,7 @@ button {
   margin: 0;
   font-size: clamp(1.18rem, 4vw, 1.55rem);
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .topbar-actions {
