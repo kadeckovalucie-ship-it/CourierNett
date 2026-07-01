@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-title" content="CourierNett">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>CourierNett</title>
-    <link rel="icon" href="./icon.svg?v=130" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./icon.svg?v=130">
-    <link rel="manifest" href="./manifest.webmanifest?v=130">
-    <link rel="stylesheet" href="./styles.css?v=130">
+    <link rel="icon" href="./icon.svg?v=131" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon.svg?v=131">
+    <link rel="manifest" href="./manifest.webmanifest?v=131">
+    <link rel="stylesheet" href="./styles.css?v=131">
   </head>
   <body>
     <div id="app">
@@ -256,17 +256,19 @@
     <dialog id="importDialog">
       <article class="detail-dialog">
         <header class="dialog-header">
-          <h2>Import</h2>
+          <h2 id="importDialogTitle">Přidat směnu</h2>
           <button id="closeImportButton" type="button">Zavřít</button>
         </header>
 
-        <section class="popup-section">
-          <h3>Služba</h3>
+        <section class="popup-section" id="importServiceStep">
+          <h3>Vyber platformu</h3>
           <div class="service-list" id="importServices"></div>
           <p class="warning hidden" id="importWarning">Vyber službu</p>
         </section>
 
-        <section class="popup-section">
+        <div class="import-fields hidden" id="importFields">
+        <button class="change-service-button" id="changeImportServiceButton" type="button">← Změnit platformu</button>
+        <section class="popup-section" id="importDriveSection">
           <h3>Kniha jízd</h3>
           <label class="file-row">
             <span>Vybrat PDF</span>
@@ -292,7 +294,7 @@
             <span>Výdělek</span>
             <input id="importIncome" type="number" inputmode="decimal" min="0" step="1" placeholder="0 Kč">
           </label>
-          <label class="field-row">
+          <label class="field-row" id="importHoursRow">
             <span>Hodiny</span>
             <input id="importHours" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0 h">
           </label>
@@ -300,6 +302,7 @@
 
         <button class="full primary-action" id="saveImportButton" type="button">Uložit</button>
         <p class="status" id="importStatus"></p>
+        </div>
       </article>
     </dialog>
 
@@ -411,7 +414,7 @@
       </article>
     </dialog>
 
-    <script src="./supabase-config.js?v=130"></script>
-    <script src="./app.js?v=130"></script>
+    <script src="./supabase-config.js?v=131"></script>
+    <script src="./app.js?v=131"></script>
   </body>
 </html>

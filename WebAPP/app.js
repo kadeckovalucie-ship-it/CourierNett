@@ -122,6 +122,12 @@ function cacheElements() {
     historySortLabel: document.querySelector("#historySortLabel"),
     historyList: document.querySelector("#historyList"),
     importServices: document.querySelector("#importServices"),
+    importDialogTitle: document.querySelector("#importDialogTitle"),
+    importServiceStep: document.querySelector("#importServiceStep"),
+    importFields: document.querySelector("#importFields"),
+    changeImportServiceButton: document.querySelector("#changeImportServiceButton"),
+    importDriveSection: document.querySelector("#importDriveSection"),
+    importHoursRow: document.querySelector("#importHoursRow"),
     importDialog: document.querySelector("#importDialog"),
     closeImportButton: document.querySelector("#closeImportButton"),
     importWarning: document.querySelector("#importWarning"),
@@ -290,12 +296,13 @@ function bindEvents() {
   });
   els.imageInput.addEventListener("change", () => {
     els.importStatus.textContent = els.imageInput.files?.[0]
-      ? "Screenshot vybrán. Web zatím hodnoty nepřečte automaticky, doplň výdělek a hodiny ručně."
+      ? (selectedImportService === "Bolt" ? "Screenshot vybrán, načítám datum, kilometry a výdělek…" : "Screenshot vybrán, načítám údaje…")
       : "";
   });
   els.pdfInput.addEventListener("change", importPdfFile);
   els.imageInput.addEventListener("change", importImageFile);
   els.closeImportButton.addEventListener("click", () => els.importDialog.close());
+  els.changeImportServiceButton.addEventListener("click", showImportServiceStep);
   els.saveImportButton.addEventListener("click", saveImport);
 
   els.expenseForm.addEventListener("input", updateExpense);
@@ -667,6 +674,7 @@ function renderImportServices() {
       selectedImportService = button.dataset.service;
       els.importWarning.classList.add("hidden");
       renderImportServices();
+      showImportForm(button.dataset.service);
     });
   });
 }
@@ -1195,12 +1203,15 @@ async function importImageFile() {
   els.importStatus.textContent = "Ctu screenshot...";
   try {
     const text = await recognizeImageText(file);
-    const result = parseEarningsText(text);
-    if (!result.income && !result.hours) throw new Error("Ve screenshotu jsem nenasla vydelek ani hodiny.");
+    const result = selectedImportService === "Bolt" ? parseBoltEarningsText(text) : parseEarningsText(text);
+    if (!result.income && !result.hours && !result.kilometers) throw new Error("Ve screenshotu jsem nenašla údaje směny.");
     if (result.date) els.importDate.value = result.date;
+    if (result.kilometers) els.importKm.value = numberTextForInput(result.kilometers);
     if (result.income) els.importIncome.value = numberTextForInput(result.income);
     if (result.hours) els.importHours.value = numberTextForInput(result.hours);
     const found = [
+      result.date ? dateLabel(result.date) : null,
+      result.kilometers ? km(result.kilometers) : null,
       result.income ? money(result.income) : null,
       result.hours ? hours(result.hours) : null,
     ].filter(Boolean).join(", ");
@@ -1338,6 +1349,26 @@ function parseEarningsText(text) {
   const income = preferredMoneyAfter(lines, "celkovy prijem") || bestMoney(lines);
   const drivenHours = preferredHoursAfter(lines, ["odjezd", "odjezdene hodiny"]) || bestHours(lines);
   return { date, income, hours: drivenHours };
+}
+
+function parseBoltEarningsText(text) {
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  return {
+    date: parseImportDate(text) || (normalizeText(text).includes("dnes") ? toDateInput(new Date()) : null),
+    income: valueNextToLabel(lines, ["hruby zisk"]),
+    kilometers: valueNextToLabel(lines, ["ujeta vzdalenost", "vzdalenost (km)"]),
+    hours: null,
+  };
+}
+
+function valueNextToLabel(lines, labels) {
+  const index = lines.findIndex((line) => labels.some((label) => normalizeText(line).includes(label)));
+  if (index < 0) return null;
+  for (const candidate of [lines[index - 1], lines[index + 1], lines[index]]) {
+    const match = String(candidate || "").match(/-?\d[\d\s]*[,.]?\d*/);
+    if (match) return number(match[0].replace(/\s/g, ""));
+  }
+  return null;
 }
 
 function preferredMoneyAfter(lines, label) {
@@ -1500,11 +1531,35 @@ function saveImport() {
   saveAndRender();
 }
 
+function showImportServiceStep() {
+  selectedImportService = null;
+  els.importDialogTitle.textContent = "Přidat směnu";
+  els.importServiceStep.classList.remove("hidden");
+  els.importFields.classList.add("hidden");
+  renderImportServices();
+}
+
+function showImportForm(service) {
+  const isBolt = service === "Bolt";
+  els.importDialogTitle.textContent = service;
+  els.importServiceStep.classList.add("hidden");
+  els.importFields.classList.remove("hidden");
+  els.importDriveSection.classList.remove("hidden");
+  els.pdfInput.closest(".file-row").classList.toggle("hidden", isBolt);
+  els.importDriveSection.querySelector("h3").textContent = isBolt ? "Údaje směny" : "Kniha jízd";
+  els.importHoursRow.classList.toggle("hidden", isBolt);
+  els.imageInput.closest("section").querySelector("h3").textContent = isBolt ? "Screenshot aktivity" : "Výdělek";
+  els.importStatus.textContent = isBolt ? "Nahraj jeden screenshot Boltu. Načtu datum, kilometry a výdělek." : "";
+}
+
 function openImportDialog() {
   els.importDate.value = `${state.selectedMonth}-01`;
+  els.importKm.value = "";
+  els.importIncome.value = "";
+  els.importHours.value = "";
   els.importStatus.textContent = "";
   els.importWarning.classList.add("hidden");
-  renderImportServices();
+  showImportServiceStep();
   els.importDialog.showModal();
 }
 
@@ -1907,7 +1962,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=130").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=131").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }

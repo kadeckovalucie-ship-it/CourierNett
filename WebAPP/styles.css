@@ -632,6 +632,19 @@ dialog form,
   font-size: 1rem;
 }
 
+.import-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.change-service-button {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 800;
+}
+
 .danger {
   color: white !important;
   background: var(--bad) !important;
