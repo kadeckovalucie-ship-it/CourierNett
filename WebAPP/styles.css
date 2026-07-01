@@ -506,6 +506,10 @@ main {
   text-align: center;
 }
 
+.button-list .button-like {
+  justify-content: center;
+}
+
 .full {
   min-height: 46px;
   border: 0;

@@ -2043,7 +2043,7 @@ function escapeHtml(value) {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js?v=136").then((registration) => {
+    navigator.serviceWorker.register("./sw.js?v=137").then((registration) => {
       registration.update().catch(() => {});
     }).catch(() => {});
   }
